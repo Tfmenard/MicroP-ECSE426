@@ -41,18 +41,29 @@
 #include "adc.h"
 #include "tim.h"
 #include "gpio.h"
+#include <math.h>
 
-	uint32_t adcVal;
-	
 /* USER CODE BEGIN Includes */
-
+    
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-
+  uint32_t adcVal;
+  uint32_t inputVoltage;
+  
+  uint16_t digitCounter = 0;
+  int digitArray[3] = {1,2,3};
+  
+  uint16_t squareWaveCounter = 0;
+  
+  double Vrms;
+  
+  double accumulator = 0;
+  uint16_t windowSize = 100;
+  
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -94,28 +105,32 @@ int main(void)
   MX_GPIO_Init();
   MX_ADC2_Init();
   MX_TIM2_Init();
+  MX_TIM3_Init();
 
   /* USER CODE BEGIN 2 */
 	
 	// Step (1): Start the Timer as interrupt.
 	HAL_TIM_Base_Start_IT(&htim2);
+  
+  HAL_TIM_Base_Start_IT(&htim3);
 	// Step (2): Start the ADC.
 	HAL_ADC_Start(&hadc2);
-
-  /* USER CODE END 2 */
-	
-//displayNumberOnTrgtDigit(1, 1);
+  
+  displayNumberOnTrgtDigit(8, 2);
 	
 	//HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
 	
-//	uint16_t windowSize = 100;
-//	
-//	uint32_t accumulator = 0;
-//	uint32_t buffer[windowSize];
-//	uint16_t index = 0;
-//	
-//	uint16_t array_begin_index = 0;
-//	uint16_t array_end_index;
+	
+	
+	
+	uint32_t buffer[windowSize];
+	uint16_t index = 0;
+	
+	uint16_t array_begin_index = 0;
+	uint16_t array_end_index;
+
+
+  /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
@@ -128,67 +143,88 @@ int main(void)
 		// Step (1): To get the ADC value.
     adcVal = HAL_ADC_GetValue(&hadc2);
 		
-		printf("%i\n", adcVal);
+		//printf("ADC Value = %i\n", adcVal);
 		
-//		if(index < windowSize)
-//		{
-//			accumulator += (adcVal)*(adcVal);
-//			buffer[index] = adcVal;
-//		}
-//		else
-//		{
-//			accumulator = accumulator - ((buffer[array_begin_index])*(buffer[array_begin_index])) + ((adcVal)*(adcVal));
-//			array_begin_index++;
-//			array_end_index = (array_begin_index + windowSize)%windowSize;
-//			buffer[array_end_index] = adcVal;
-//			
-//		}
-//		
-//		//iterate index
-//		index++;
+    inputVoltage = convertADCVal2Double(adcVal);
+    
+		if(index < windowSize)
+		{
+			accumulator += (inputVoltage)*(inputVoltage);
+			buffer[index] = inputVoltage;
+		}
+		else
+		{
+			accumulator = accumulator - ((buffer[array_begin_index])*(buffer[array_begin_index])) + ((inputVoltage)*(inputVoltage));
+			array_begin_index++;
+			array_end_index = (array_begin_index + windowSize)%windowSize;
+			buffer[array_end_index] = inputVoltage;
+			
+		}
 		
-//		// Step (2): Display ADC value on LEDs.
-//		// 1. adc val 0 - 63, Green LED.
-//		if(adcVal < 64)
-//		{
-//			HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
-//			HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_RESET);
-//			HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
-//			HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_SET);
-//		}
-//		// 2. adc val 64 - 127, Orange LED.
-//		else if(adcVal < 128)
-//		{
-//			HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
-//			HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_RESET);
-//			HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
-//			HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_SET);
-//		}
-//		// 3. adc val 128 - 195, Red LED.
-//		else if(adcVal < 196)
-//		{
-//			HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
-//			HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_RESET);
-//			HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
-//			HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_SET);
-//		}
-//		// 4. adc val 196 - 255, Blue LED.
-//		else
-//		{
-//			HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
-//			HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_RESET);
-//			HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
-//			HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_SET);
-//		}
-		
+		//iterate index
+		index++;
 		
   }
-  
   
   /* USER CODE END 3 */
 
 }
 
+/** System Clock Configuration
+*/
+void SystemClock_Config(void)
+{
+
+  RCC_OscInitTypeDef RCC_OscInitStruct;
+  RCC_ClkInitTypeDef RCC_ClkInitStruct;
+
+    /**Configure the main internal regulator output voltage 
+    */
+  __HAL_RCC_PWR_CLK_ENABLE();
+
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+
+    /**Initializes the CPU, AHB and APB busses clocks 
+    */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = 16;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL.PLLM = 8;
+  RCC_OscInitStruct.PLL.PLLN = 50;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV4;
+  RCC_OscInitStruct.PLL.PLLQ = 7;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+    /**Initializes the CPU, AHB and APB busses clocks 
+    */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV8;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV4;
+
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+    /**Configure the Systick interrupt time 
+    */
+  HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000);
+
+    /**Configure the Systick 
+    */
+  HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
+
+  /* SysTick_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
+}
 
 /* USER CODE BEGIN 4 */
 
@@ -196,22 +232,57 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
 		adcVal = HAL_ADC_GetValue(&hadc2);
 		
-		printf("%i\n", adcVal);
+		//printf("%i\n", adcVal);
 }	
 
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_4);
+  if(htim ==  &htim2)
+  {
+    //Compute RMS
+    Vrms = sqrt(accumulator / windowSize);
+    printf("Vrms = %lf\n", Vrms);
+    
+    //Update number to broadcast on 7 segment display
+    //-Create integer array from Vrms
+    //Overwrite digitArray with new array
+    
+  }
+  else if(htim == &htim3)
+  { 
+    adcVal = HAL_ADC_GetValue(&hadc2);
+    printf("ADC Value = %i\n", adcVal);
+    
+    squareWaveCounter = (squareWaveCounter + 1) % 2;
+    if(squareWaveCounter == 0)
+    {
+      HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_4);
+    }
+    //Refresh segment display
+    displayNumberOnTrgtDigit(digitArray[digitCounter], (digitCounter + 1) );
+    //Update counter
+    digitCounter = (digitCounter + 1) % 3;
+  }
+	//HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_4);
 	//HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+  //printf("Time elapsedCallaback");
 }
 
-
+double convertADCVal2Double(int ADCVal)
+{
+  double result;
+  double Vref = 3.3;
+  double maxQuantValue = 255.0;
+  
+  result = ((ADCVal)*Vref)/maxQuantValue;
+  
+  return result;
+}
 //This displays the a number on any 7 segment display by setting the to high the segment that need to be lit
 //The function is based on the schematic of a 7 segment display module BL-Q39A42
 void displayNumberOn7Segment(int number) 
-{
-    
+{   
     switch(number) 
     {
       case 0:
@@ -325,21 +396,27 @@ void selectTrgt7SegmentDisplayDigit(int trgtDigit)
   switch(trgtDigit)
   {
     case 1:
-      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_RESET);
-      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_SET);
-      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_SET); 
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_SET);
+    
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_7, GPIO_PIN_SET); // Light up Decimal point
       break;
     
     case 2:
-      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_SET);
-      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_RESET);
-      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_SET); 
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_SET); 
+    
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_7, GPIO_PIN_RESET); // Shut down Decimal point
       break;
     
     case 3:
-      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_SET);
-      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_SET);
-      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_RESET); 
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_RESET); 
+    
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_7, GPIO_PIN_RESET); // Shut down Decimal point
       break;
   }
 }
@@ -355,63 +432,6 @@ void displayDoubleOn7SegDisplay(double number)
   
 }
 /* USER CODE END 4 */
-
-/** System Clock Configuration
-*/
-void SystemClock_Config(void)
-{
-
-  RCC_OscInitTypeDef RCC_OscInitStruct;
-  RCC_ClkInitTypeDef RCC_ClkInitStruct;
-
-    /**Configure the main internal regulator output voltage 
-    */
-  __HAL_RCC_PWR_CLK_ENABLE();
-
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
-
-    /**Initializes the CPU, AHB and APB busses clocks 
-    */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = 16;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-  RCC_OscInitStruct.PLL.PLLM = 8;
-  RCC_OscInitStruct.PLL.PLLN = 50;
-  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV4;
-  RCC_OscInitStruct.PLL.PLLQ = 7;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-    /**Initializes the CPU, AHB and APB busses clocks 
-    */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV8;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV4;
-
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-    /**Configure the Systick interrupt time 
-    */
-  HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000);
-
-    /**Configure the Systick 
-    */
-  HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
-
-  /* SysTick_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
-}
-
 
 /**
   * @brief  This function is executed in case of error occurrence.

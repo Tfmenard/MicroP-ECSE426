@@ -34,3 +34,4 @@ lab_2\main.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h
 lab_2\main.o: ../Inc/adc.h
 lab_2\main.o: ../Inc/tim.h
 lab_2\main.o: ../Inc/gpio.h
+lab_2\main.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\math.h
