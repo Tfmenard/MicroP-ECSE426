@@ -42,6 +42,8 @@
 #include "tim.h"
 #include "gpio.h"
 
+	uint32_t adcVal;
+	
 /* USER CODE BEGIN Includes */
 
 /* USER CODE END Includes */
@@ -102,7 +104,9 @@ int main(void)
 
   /* USER CODE END 2 */
 	
-	uint32_t adcVal;
+//displayNumberOnTrgtDigit(1, 1);
+	
+	//HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
 	
 //	uint16_t windowSize = 100;
 //	
@@ -122,7 +126,7 @@ int main(void)
   /* USER CODE BEGIN 3 */
 
 		// Step (1): To get the ADC value.
-		adcVal = HAL_ADC_GetValue(&hadc2);
+    adcVal = HAL_ADC_GetValue(&hadc2);
 		
 		printf("%i\n", adcVal);
 		
@@ -179,14 +183,178 @@ int main(void)
 		
 		
   }
+  
+  
   /* USER CODE END 3 */
 
 }
 
+
+/* USER CODE BEGIN 4 */
+
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
+{
+		adcVal = HAL_ADC_GetValue(&hadc2);
+		
+		printf("%i\n", adcVal);
+}	
+
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_4);
+	//HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
 }
+
+
+//This displays the a number on any 7 segment display by setting the to high the segment that need to be lit
+//The function is based on the schematic of a 7 segment display module BL-Q39A42
+void displayNumberOn7Segment(int number) 
+{
+    
+    switch(number) 
+    {
+      case 0:
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_0, GPIO_PIN_SET); //A
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_1, GPIO_PIN_SET); //B
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_2, GPIO_PIN_SET); //C
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_3, GPIO_PIN_SET); //D
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_4, GPIO_PIN_SET); //E
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_5, GPIO_PIN_SET); //F
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_RESET); //G
+        break;
+      
+      case 1:
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_0, GPIO_PIN_RESET); //A
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_1, GPIO_PIN_SET); //B
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_2, GPIO_PIN_SET); //C
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_3, GPIO_PIN_RESET); //D
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_4, GPIO_PIN_RESET); //E
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_5, GPIO_PIN_RESET); //F
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_RESET); //G
+        break;
+        
+      case 2:
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_0, GPIO_PIN_SET); //A
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_1, GPIO_PIN_SET); //B
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_2, GPIO_PIN_RESET); //C
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_3, GPIO_PIN_SET); //D
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_4, GPIO_PIN_SET); //E
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_5, GPIO_PIN_RESET); //F
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_SET); //G
+        break;
+      
+      case 3:
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_0, GPIO_PIN_SET); //A
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_1, GPIO_PIN_SET); //B
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_2, GPIO_PIN_SET); //C
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_3, GPIO_PIN_SET); //D
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_4, GPIO_PIN_RESET); //E
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_5, GPIO_PIN_RESET); //F
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_SET); //G
+        break;
+      
+      case 4:
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_0, GPIO_PIN_RESET); //A
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_1, GPIO_PIN_SET); //B
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_2, GPIO_PIN_SET); //C
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_3, GPIO_PIN_RESET); //D
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_4, GPIO_PIN_RESET); //E
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_5, GPIO_PIN_SET); //F
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_SET); //G
+        break;
+      
+      case 5:
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_0, GPIO_PIN_SET); //A
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_1, GPIO_PIN_RESET); //B
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_2, GPIO_PIN_SET); //C
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_3, GPIO_PIN_SET); //D
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_4, GPIO_PIN_RESET); //E
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_5, GPIO_PIN_SET); //F
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_SET); //G
+        break;
+      
+      case 6:
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_0, GPIO_PIN_SET); //A
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_1, GPIO_PIN_RESET); //B
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_2, GPIO_PIN_SET); //C
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_3, GPIO_PIN_SET); //D
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_4, GPIO_PIN_SET); //E
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_5, GPIO_PIN_SET); //F
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_SET); //G
+        break;
+      
+      case 7:
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_0, GPIO_PIN_SET); //A
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_1, GPIO_PIN_SET); //B
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_2, GPIO_PIN_SET); //C
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_3, GPIO_PIN_RESET); //D
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_4, GPIO_PIN_RESET); //E
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_5, GPIO_PIN_RESET); //F
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_RESET); //G
+        break;
+      
+      case 8:
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_0, GPIO_PIN_SET); //A
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_1, GPIO_PIN_SET); //B
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_2, GPIO_PIN_SET); //C
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_3, GPIO_PIN_SET); //D
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_4, GPIO_PIN_SET); //E
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_5, GPIO_PIN_SET); //F
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_SET); //G
+        break;
+      
+      case 9:
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_0, GPIO_PIN_SET); //A
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_1, GPIO_PIN_SET); //B
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_2, GPIO_PIN_SET); //C
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_3, GPIO_PIN_SET); //D
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_4, GPIO_PIN_RESET); //E
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_5, GPIO_PIN_SET); //F
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_SET); //G
+        break;
+      
+      
+    
+    }
+}
+  
+  //This grounds the correct GPIO Pin connected to a target digit pin on the segment display
+void selectTrgt7SegmentDisplayDigit(int trgtDigit)
+{
+  switch(trgtDigit)
+  {
+    case 1:
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_SET); 
+      break;
+    
+    case 2:
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_SET); 
+      break;
+    
+    case 3:
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_RESET); 
+      break;
+  }
+}
+
+void displayNumberOnTrgtDigit(int number, int trgtDigit)
+{ 
+  selectTrgt7SegmentDisplayDigit(trgtDigit);
+  displayNumberOn7Segment(number);
+}
+
+void displayDoubleOn7SegDisplay(double number)
+{
+  
+}
+/* USER CODE END 4 */
 
 /** System Clock Configuration
 */
@@ -244,9 +412,6 @@ void SystemClock_Config(void)
   HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 }
 
-/* USER CODE BEGIN 4 */
-
-/* USER CODE END 4 */
 
 /**
   * @brief  This function is executed in case of error occurrence.

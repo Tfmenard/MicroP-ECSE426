@@ -1,4 +1,4 @@
-lab_2\fput_debug.o: ..\Src\fput_debug.c
+lab_2\fput_debug.o: fput_debug.c
 lab_2\fput_debug.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
 lab_2\fput_debug.o: ../Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32f4xx.h
 lab_2\fput_debug.o: ../Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32f407xx.h
