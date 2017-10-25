@@ -110,7 +110,7 @@
 /* USER CODE BEGIN Private defines */
 void displayNumberOnTrgtDigit(int number, int trgtDigit);
 
-double convertADCVal2Double(int ADCVal);
+double convertADCValueToVoltage(int adcVal);
 /* USER CODE END Private defines */
 
 void _Error_Handler(char *, int);

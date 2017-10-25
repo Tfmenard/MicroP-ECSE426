@@ -51,18 +51,19 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-  uint32_t adcVal;
-  uint32_t inputVoltage;
-  
-  uint16_t digitCounter = 0;
+  int currentADCValue;
+	double currentAnalogVoltage;
+	int windowSize = 10;
+	double buffer[10];
+	int bufferFull = 0;
+	int bufferBeginIndex = 0;
+	int bufferEndIndex;
+	double accumulator;
+  int sampleCounter = 0;
+  int squareWaveCounter = 0;
+	int digitCounter = 0;
   int digitArray[3] = {1,2,3};
-  
-  uint16_t squareWaveCounter = 0;
-  
-  double Vrms;
-  
-  double accumulator = 0;
-  uint16_t windowSize = 100;
+	double vRMS;
   
 /* USER CODE END PV */
 
@@ -111,63 +112,20 @@ int main(void)
 	
 	// Step (1): Start the Timer as interrupt.
 	HAL_TIM_Base_Start_IT(&htim2);
-  
   HAL_TIM_Base_Start_IT(&htim3);
+	
 	// Step (2): Start the ADC.
 	HAL_ADC_Start(&hadc2);
   
-  displayNumberOnTrgtDigit(8, 2);
-	
-	//HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
-	
-	
-	
-	
-	uint32_t buffer[windowSize];
-	uint16_t index = 0;
-	
-	uint16_t array_begin_index = 0;
-	uint16_t array_end_index;
-
-
   /* USER CODE END 2 */
-
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
   /* USER CODE END WHILE */
-
   /* USER CODE BEGIN 3 */
-
-		// Step (1): To get the ADC value.
-    adcVal = HAL_ADC_GetValue(&hadc2);
-		
-		//printf("ADC Value = %i\n", adcVal);
-		
-    inputVoltage = convertADCVal2Double(adcVal);
-    
-		if(index < windowSize)
-		{
-			accumulator += (inputVoltage)*(inputVoltage);
-			buffer[index] = inputVoltage;
-		}
-		else
-		{
-			accumulator = accumulator - ((buffer[array_begin_index])*(buffer[array_begin_index])) + ((inputVoltage)*(inputVoltage));
-			array_begin_index++;
-			array_end_index = (array_begin_index + windowSize)%windowSize;
-			buffer[array_end_index] = inputVoltage;
-			
-		}
-		
-		//iterate index
-		index++;
-		
   }
-  
   /* USER CODE END 3 */
-
 }
 
 /** System Clock Configuration
@@ -230,57 +188,60 @@ void SystemClock_Config(void)
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
-		adcVal = HAL_ADC_GetValue(&hadc2);
-		
-		//printf("%i\n", adcVal);
+	
 }	
 
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-  if(htim ==  &htim2)
+	// This gets called every 1 ms.
+  if(htim == &htim2)
   {
-    //Compute RMS
-    Vrms = sqrt(accumulator / windowSize);
-    printf("Vrms = %lf\n", Vrms);
-    
-    //Update number to broadcast on 7 segment display
-    //-Create integer array from Vrms
-    //Overwrite digitArray with new array
-    
+		currentADCValue = HAL_ADC_GetValue(&hadc2);
+		double voltageValue = (currentADCValue * 3.0) / 255;
+		
+		if((sampleCounter < windowSize) && (bufferFull == 0))
+		{
+			accumulator += voltageValue * voltageValue;
+			buffer[sampleCounter] = voltageValue;
+		}
+		else
+		{
+			accumulator = accumulator - (buffer[sampleCounter] * buffer[sampleCounter]) + (voltageValue * voltageValue);
+			buffer[sampleCounter] = voltageValue;
+		}
+		
+		sampleCounter++;
+		
+		if(sampleCounter == windowSize)
+		{
+			bufferFull = 1;
+			sampleCounter = 0;
+		}
+		
+		if(sampleCounter == 0)
+		{
+			vRMS = sqrt(accumulator / windowSize);
+			printf("RMS Voltage: %f\n", vRMS);
+		} 
   }
+	// This gets called every 5 ms.
   else if(htim == &htim3)
-  { 
-    adcVal = HAL_ADC_GetValue(&hadc2);
-    printf("ADC Value = %i\n", adcVal);
-    
+  {	
+		// Generate a 50 Hz square wave with an amplitude of 3V.
     squareWaveCounter = (squareWaveCounter + 1) % 2;
     if(squareWaveCounter == 0)
     {
       HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_4);
     }
-    //Refresh segment display
+		
+    // Refresh the segment display and update the digit counter.
     displayNumberOnTrgtDigit(digitArray[digitCounter], (digitCounter + 1) );
-    //Update counter
     digitCounter = (digitCounter + 1) % 3;
   }
-	//HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_4);
-	//HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
-  //printf("Time elapsedCallaback");
 }
 
-double convertADCVal2Double(int ADCVal)
-{
-  double result;
-  double Vref = 3.3;
-  double maxQuantValue = 255.0;
-  
-  result = ((ADCVal)*Vref)/maxQuantValue;
-  
-  return result;
-}
-//This displays the a number on any 7 segment display by setting the to high the segment that need to be lit
-//The function is based on the schematic of a 7 segment display module BL-Q39A42
+// This function selects the provided number to be light up (selects the right segments of the 7-segment display).
 void displayNumberOn7Segment(int number) 
 {   
     switch(number) 
@@ -384,13 +345,10 @@ void displayNumberOn7Segment(int number)
         HAL_GPIO_WritePin(GPIOD, GPIO_PIN_5, GPIO_PIN_SET); //F
         HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_SET); //G
         break;
-      
-      
-    
     }
 }
   
-  //This grounds the correct GPIO Pin connected to a target digit pin on the segment display
+// This function selects the provided digit to be lit up.
 void selectTrgt7SegmentDisplayDigit(int trgtDigit)
 {
   switch(trgtDigit)
@@ -421,16 +379,13 @@ void selectTrgt7SegmentDisplayDigit(int trgtDigit)
   }
 }
 
+// This function lits up the provided number on the provided digit.
 void displayNumberOnTrgtDigit(int number, int trgtDigit)
 { 
   selectTrgt7SegmentDisplayDigit(trgtDigit);
   displayNumberOn7Segment(number);
 }
 
-void displayDoubleOn7SegDisplay(double number)
-{
-  
-}
 /* USER CODE END 4 */
 
 /**
