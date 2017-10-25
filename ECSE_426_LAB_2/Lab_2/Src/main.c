@@ -223,6 +223,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		{
 			vRMS = sqrt(accumulator / windowSize);
 			printf("RMS Voltage: %f\n", vRMS);
+			
+			digitArray[0] = (int) vRMS;
+			digitArray[1] = ((int)(vRMS * 10)) % 10;
+			digitArray[2] = ((int)(vRMS * 100)) % 10;
 		} 
   }
 	// This gets called every 5 ms.
