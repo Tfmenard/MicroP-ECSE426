@@ -51,18 +51,41 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-  int currentADCValue;
+  
+	// CONSTANT VALUE FOR THE REFERENCE VOLTAGE OF THE ADC.
+	double vREF = 3.0;
+	
+	// THIS VARIABLE KEEPS TRACK OF THE CURRENT ADC SAMPLE.
+	int currentADCValue;
+	
+	// THIS VARIABLE KEEPS TRACK OF THE CURRENT MEASURED VOLTAGE (AFTER DAC CONVERSION).
 	double currentAnalogVoltage;
-	int windowSize = 10;
-	double buffer[10];
+	
+	// CONSTANT VALUE FOR THE SIZE OF THE WINDOW.
+	int windowSize = 1000;
+	
+	// BUFFER FOR THE LAST N SAMPLES, WHERE N IS THE WINDOW SIZE.
+	double buffer[1000];
+	
+	// FLAG THAT KEEP TRACK OF WHETHER OR NOT THE BUFFER IS FULL (0 = NO, 1 = YES).
 	int bufferFull = 0;
-	int bufferBeginIndex = 0;
-	int bufferEndIndex;
+
+	// THIS VARIABLE KEEPS TRACK OF THE ACCUMULATOR VALUE FOR THE PAST N SAMPLES, WHERE N IS THE WINDOW SIZE.
 	double accumulator;
+	
+	// THIS VARIABLE KEEPS TRACK OF THE SAMPLE NUMBER. IT GETS RESET AFTER EACH N SAMPLES, WHERE N IS THE WINDOW SIZE.
   int sampleCounter = 0;
+	
+	// THIS VARIABLE KEEPS TRACK OF WHEN TO TOGGLE THE SQUARE WAVE. IT GETS RESET EVERY 10 MS.
   int squareWaveCounter = 0;
+	
+	// THIS VARIABLE KEEPS TRACK OF WHICH DIGIT OF THE LED DISPLAY SHOULD BE LIT UP.
 	int digitCounter = 0;
+	
+	// THIS ARRAY KEEPS TRACK OF THE VALUE OF THE THREE DIGITS TO DISPLAY (IN THE FORMAT X.XX).
   int digitArray[3] = {1,2,3};
+	
+	// THIS VARIABLE KEEPS TRACK OF THE CURRENT MEASURED VALUE OF THE RMS VOLTAGE.
 	double vRMS;
   
 /* USER CODE END PV */
@@ -194,44 +217,73 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-	// This gets called every 1 ms.
+	// TIMER 2: This gets called every 1 ms.
   if(htim == &htim2)
   {
+		// Get the previous sample of the ADC (since ADC conversion is in process).
 		currentADCValue = HAL_ADC_GetValue(&hadc2);
-		double voltageValue = (currentADCValue * 3.0) / 255;
 		
+		// Check for unexpected spikes and prevent them if they occur.
+		currentADCValue = preventUnexpectedSpike(currentADCValue);
+		
+		// Convert the ADC value to an analog value.
+		double voltageValue = (currentADCValue * vREF) / 255;
+		
+		// If the buffer has not been filled...
 		if((sampleCounter < windowSize) && (bufferFull == 0))
 		{
-			accumulator += voltageValue * voltageValue;
+			// 1. Update the accumalor.
+			accumulator += voltageValue * voltageValue;	
+			
+			// 2. Check for accumulator overflow or underflow and prevent them if they occur.
+			accumulator = preventAccumulatorOverflowOrUnderflow(accumulator, windowSize * vREF * vREF);
+			
+			// 3. Update the buffer.
 			buffer[sampleCounter] = voltageValue;
 		}
+		// Otherwise if the buffer has been filled...
 		else
 		{
+			// 1. Update the accumalor.
 			accumulator = accumulator - (buffer[sampleCounter] * buffer[sampleCounter]) + (voltageValue * voltageValue);
+			
+			// 2. Check for accumulator overflow or underflow and prevent them if they occur.
+			accumulator = preventAccumulatorOverflowOrUnderflow(accumulator, windowSize * vREF * vREF);
+			
+			// 3. Update the buffer.
 			buffer[sampleCounter] = voltageValue;
 		}
 		
+		// Increment the sample counter.
 		sampleCounter++;
 		
+		// If the sample counter has reached the window size, set the bufferFull flag to 1 and reset the counter.
 		if(sampleCounter == windowSize)
 		{
 			bufferFull = 1;
 			sampleCounter = 0;
 		}
 		
+		// Every N ms, where N is the window size, compute a new RMS voltage and update the array that contains the digits to be displayed.
 		if(sampleCounter == 0)
 		{
 			vRMS = sqrt(accumulator / windowSize);
 			printf("RMS Voltage: %f\n", vRMS);
 			
+			// The RMS voltage has the form A.BCDEF...
+			// Retrive digit A and put it in digitArray[0].
 			digitArray[0] = (int) vRMS;
+			
+			// Retrive digit B and put it in digitArray[1].
 			digitArray[1] = ((int)(vRMS * 10)) % 10;
+			
+			// Retrive digit C and put it in digitArray[2].
 			digitArray[2] = ((int)(vRMS * 100)) % 10;
 		} 
   }
-	// This gets called every 5 ms.
+	// TIMER 3: This gets called every 5 ms.
   else if(htim == &htim3)
-  {	
+  {
 		// Generate a 50 Hz square wave with an amplitude of 3V.
     squareWaveCounter = (squareWaveCounter + 1) % 2;
     if(squareWaveCounter == 0)
@@ -245,7 +297,41 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   }
 }
 
-// This function selects the provided number to be light up (selects the right segments of the 7-segment display).
+// This function prevents unexpected spike in input value.
+int preventUnexpectedSpike(int currentADCValue)
+{
+		if(currentADCValue < 0)
+		{
+			return 0;
+		}
+		else if(currentADCValue > 255)
+		{
+			return 255;
+		}
+		else
+		{
+			return currentADCValue;
+		}
+}
+
+// This function prevents accumulator overflow/underflow.
+double preventAccumulatorOverflowOrUnderflow(double accumulator, double maxValue)
+{
+	if(accumulator < 0)
+	{
+		return 0;
+	}
+	else if(accumulator > maxValue)
+	{
+		return maxValue;
+	}
+	else
+	{
+		return accumulator;
+	}
+}
+
+// This function selects the provided number to be lit up (selects the right segments of the 7-segment display).
 void displayNumberOn7Segment(int number) 
 {   
     switch(number) 

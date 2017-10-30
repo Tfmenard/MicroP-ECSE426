@@ -108,9 +108,11 @@
 #define MEMS_INT2_GPIO_Port GPIOE
 
 /* USER CODE BEGIN Private defines */
+int preventUnexpectedSpike(int currentADCValue);
+double preventAccumulatorOverflowOrUnderflow(double accumulator, double maxValue);
+void displayNumberOn7Segment(int number);
+void selectTrgt7SegmentDisplayDigit(int trgtDigit);
 void displayNumberOnTrgtDigit(int number, int trgtDigit);
-
-double convertADCValueToVoltage(int adcVal);
 /* USER CODE END Private defines */
 
 void _Error_Handler(char *, int);
