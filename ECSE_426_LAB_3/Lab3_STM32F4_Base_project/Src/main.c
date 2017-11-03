@@ -80,8 +80,15 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
 	
-	//HAL_TIM_Base_Start_IT(&htim3);
-	//HAL_TIM_PWN_Start(&htim3, TIM_CHANNEL_ALL);
+	MX_TIM3_Init();
+	MX_TIM4_Init();
+	
+	HAL_TIM_Base_Start(&htim3); 
+	HAL_TIM_PWM_Start(&htim3,TIM_CHANNEL_ALL);
+	
+	HAL_TIM_Base_Start(&htim4); 
+	HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_ALL);
+
 	
   while(1)
   {
