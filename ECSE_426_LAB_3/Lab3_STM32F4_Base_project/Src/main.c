@@ -34,6 +34,10 @@
 #include "stm32f4xx_hal.h"
 #include "gpio.h"
 #include "lis3dsh.h"
+#include "tim.h"
+
+#include <stm32f4xx_hal_rcc.h>
+#include <stm32f4xx_hal_tim.h>
 
 
 LIS3DSH_InitTypeDef 		Acc_instance;
@@ -75,7 +79,10 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-
+	
+	//HAL_TIM_Base_Start_IT(&htim3);
+	//HAL_TIM_PWN_Start(&htim3, TIM_CHANNEL_ALL);
+	
   while(1)
   {
 
