@@ -126,16 +126,16 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_ADC2_Init();
-  MX_TIM2_Init();
-  MX_TIM3_Init();
+ // MX_ADC2_Init();
+  //MX_TIM2_Init();
+  //MX_TIM3_Init();
+  MX_TIM4_Init();
 
   /* USER CODE BEGIN 2 */
-	
+	HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_2);
 	// Step (1): Start the Timer as interrupt.
 	HAL_TIM_Base_Start_IT(&htim2);
   HAL_TIM_Base_Start_IT(&htim3);
-	
 	// Step (2): Start the ADC.
 	HAL_ADC_Start(&hadc2);
   

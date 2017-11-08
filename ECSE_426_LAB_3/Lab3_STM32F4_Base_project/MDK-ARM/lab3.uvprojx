@@ -509,6 +509,16 @@
               <FileType>5</FileType>
               <FilePath>..\Inc\LIS3DSH.h</FilePath>
             </File>
+            <File>
+              <FileName>tim.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\tim.c</FilePath>
+            </File>
+            <File>
+              <FileName>keypad4x4.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\keypad4x4.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

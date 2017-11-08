@@ -63,7 +63,7 @@ int main(void)
 	
 	
 	HAL_NVIC_EnableIRQ(EXTI0_IRQn);
-	HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
+	HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 1);
 
 	initializeACC	();
 	HAL_SPI_MspInit(hspi);
@@ -80,14 +80,22 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
 	
-	MX_TIM3_Init();
-	MX_TIM4_Init();
+	//MX_TIM3_Init();
+	//MX_TIM4_Init();
 	
-	HAL_TIM_Base_Start(&htim3); 
-	HAL_TIM_PWM_Start(&htim3,TIM_CHANNEL_ALL);
+	MX_TIM4_Init_Alt();
 	
 	HAL_TIM_Base_Start(&htim4); 
-	HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_ALL);
+	
+	//Green LED
+	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
+	//Orange LED
+	HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_2);
+	//Red LED
+	HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_3);
+	//Blue LED
+	HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_4);
+
 
 	
   while(1)
@@ -126,7 +134,19 @@ int main(void)
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-	HAL_GPIO_TogglePin(GPIOD,GPIO_PIN_13);
+
+	
+	//HAL_GPIO_WritePin(GPIOE,GPIO_PIN_7, GPIO_PIN_SET);
+	//HAL_GPIO_WritePin(GPIOE,GPIO_PIN_8, GPIO_PIN_SET);
+	//HAL_GPIO_WritePin(GPIOE,GPIO_PIN_9, GPIO_PIN_SET);
+	//HAL_GPIO_WritePin(GPIOE,GPIO_PIN_10, GPIO_PIN_SET);
+	
+//	HAL_GPIO_WritePin(GPIOE,GPIO_PIN_11, GPIO_PIN_SET);
+//	HAL_GPIO_WritePin(GPIOE,GPIO_PIN_12, GPIO_PIN_SET);
+//	HAL_GPIO_WritePin(GPIOE,GPIO_PIN_13, GPIO_PIN_SET);
+//	HAL_GPIO_WritePin(GPIOE,GPIO_PIN_14, GPIO_PIN_SET);
+	
+	
 	
 	LIS3DSH_ReadACC(&Buffer[0]);
 	accX = (float)Buffer[0];
