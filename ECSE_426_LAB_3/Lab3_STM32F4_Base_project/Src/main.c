@@ -36,6 +36,7 @@
 #include "lis3dsh.h"
 #include "tim.h"
 #include "keypad4x4.h"
+#include "math.h"
 
 #include <stm32f4xx_hal_rcc.h>
 #include <stm32f4xx_hal_tim.h>
@@ -47,14 +48,57 @@ SPI_HandleTypeDef *hspi;
 /* Private variables ---------------------------------------------------------*/
 
 uint8_t status;
-float Buffer[3];
+
+// THIS IS THE BUFFER FOR THE INPUT OF THE ACCELEROMETER SENSOR.
+float inputBuffer[3];
+
+// THESE VARIABLES STORE THE CURRENT RAW VALUES FROM THE ACCELEROMETER SENSOR.
 float accX, accY, accZ;
+
+// THESE CONSTANTS ARE USED TO CALIBRATE THE VALUES OF THE ACCELEROMETER SENSOR.
+float	acc11 = 0.00101492331;
+float	acc12 = 0.00000698307;
+float	acc13 = 0.00000805562;
+float	acc10 = 0.00221516886;
+float	acc21 = -0.00007170752;
+float	acc22 = 0.00095980401;
+float	acc23 = 0.00002352682;
+float	acc20 = 0.01772957335;
+float	acc31 = -0.00010254170;
+float	acc32 = -0.00001399401;
+float	acc33 = 0.00098730978;
+float	acc30 = -0.00523204952;
+
+// THESE VARIABLES STORE THE CURRENT CALIBRATED VALUES.
 float normalizedAccX, normalizedAccY, normalizedAccZ;
 
-float acc11, acc12, acc13, acc10,
-			acc21, acc22, acc23, acc20,
-			acc31, acc32, acc33, acc30;
+// THESE ARRAYS KEEP TRACK OF THE LAST THREE UNFILTERED ACCELEROMETER READINGS FOR A PARTICULAR AXIS: {x[n], x[n-1], x[n-2]}.
+float unfilteredAccX[3] = {0.0, 0.0, 0.0};
+float unfilteredAccY[3] = {0.0, 0.0, 0.0};
+float unfilteredAccZ[3] = {0.0, 0.0, 0.0};
 
+// THESE ARRAYS KEEP TRACK OF THE LAST TWO FILTERED ACCELEROMETER VALUES FOR A PARTICULAR AXIS: {y[n-1], y[n-2]}.
+float filteredAccX[2] = {0.0, 0.0};
+float filteredAccY[2] = {0.0, 0.0};
+float filteredAccZ[2] = {0.0, 0.0};
+
+// THESE CONSTANTS ARE THE FILTER COEFFICIENTS.
+float b0 = 0.2;
+float b1 = 0.2;
+float b2 = 0.2;
+float a1 = 0.2;
+float a2 = 0.2;
+
+// THESE VARIABLES STORE THE CURRENT FILTERED AND CALIBRATED VALUES.
+float finalAccX, finalAccY, finalAccZ;
+
+// THESE VARIABLES STORE THE CURRENT ROLL AND PITCH ANGLES.
+double rollAngle;
+double pitchAngle;
+
+// THESE VARIABLES STORE THE TARGET ROLL AND PITCH ANGLES (ENTERED ON THE KEYPAD).
+double targetRollAngle  = 45.0;
+double targetPitchAngle = 45.0;
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
@@ -63,43 +107,27 @@ int SysTickCount;
 
 int keyPressedCounter;
 int currentKeyPressed;
+int timer2Counter;
+int currentRow;
+int currentColumn;
 
 int main(void)
 {
-	acc11 = 0.00101492331;
-	acc12 = 0.00000698307;
-	acc13 = 0.00000805562;
-	acc10 = 0.00221516886;
-	
-	acc21 = -0.00007170752;
-	acc22 = 0.00095980401;
-	acc23 = 0.00002352682;
-	acc20 = 0.01772957335;
-	
-	acc31 = -0.00010254170;
-	acc32 = -0.00001399401;
-	acc33 = 0.00098730978;
-	acc30 = -0.00523204952;
-	
 	currentKeyPressed = -1;
 	keyPressedCounter = 0;
-	
+	timer2Counter = 0;
 	
 	interruptCfg.Dataready_Interrupt = LIS3DSH_DATA_READY_INTERRUPT_ENABLED;
 	interruptCfg.Interrupt_signal = LIS3DSH_ACTIVE_HIGH_INTERRUPT_SIGNAL;
 	interruptCfg.Interrupt_type = LIS3DSH_INTERRUPT_REQUEST_PULSED;
 	
-	
 	HAL_NVIC_EnableIRQ(EXTI0_IRQn);
 	HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
-
 
 	initializeACC	();
 	HAL_SPI_MspInit(hspi);
 	LIS3DSH_DataReadyInterruptConfig(&interruptCfg);
 	
-	
-
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
 
@@ -108,9 +136,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-	
 	MX_TIM2_Init();
-	
 	MX_TIM4_Init_Alt();
 	
 	HAL_TIM_Base_Start_IT(&htim2);
@@ -125,36 +151,10 @@ int main(void)
 	// Blue LED
 	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4);
 
-
-	
   while(1)
   {
-
-	/* this is just an example of reading the Accelerometer data in polling technique. You are
-		required to read value in interrupt mode automatically, without requesting for a new data every time.
-		In fact, the Accl IC will generate data at a certain rate that you have to configure it.
-	*/
-	// an example of pulse division.
-//		if(SysTickCount ==20) 
-//		{			
-//				LIS3DSH_Read (&status, LIS3DSH_STATUS, 1);
-//				//The first four bits denote if we have new data on all XYZ axes, 
-//		   	//Z axis only, Y axis only or Z axis only. If any or all changed, proceed
-//				if((status & 0x0F) != 0x00)
-//				{
-//			
-//					LIS3DSH_ReadACC(&Buffer[0]);
-//					accX = (float)Buffer[0];
-//					accY = (float)Buffer[1];
-//					accZ = (float)Buffer[2];
-//					printf("X: %3f   Y: %3f   Z: %3f  absX: %d\n", accX, accY, accZ , (int)(Buffer[0]));
-//					HAL_GPIO_TogglePin(GPIOD,GPIO_PIN_13);
-//				}
-//			SysTickCount = 0;
-//			}
-		
+	
   }
-
 }
 
 /** System Clock Configuration
@@ -163,64 +163,110 @@ int main(void)
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-
+	// READ THE ACCELEROMETER VALUES.
+	LIS3DSH_ReadACC(&inputBuffer[0]);
+	accX = (float)inputBuffer[0];
+	accY = (float)inputBuffer[1];
+	accZ = (float)inputBuffer[2];
 	
-	//HAL_GPIO_WritePin(GPIOE,GPIO_PIN_7, GPIO_PIN_SET);
-	//HAL_GPIO_WritePin(GPIOE,GPIO_PIN_8, GPIO_PIN_SET);
-	//HAL_GPIO_WritePin(GPIOE,GPIO_PIN_9, GPIO_PIN_SET);
-	//HAL_GPIO_WritePin(GPIOE,GPIO_PIN_10, GPIO_PIN_SET);
+	// CALIBRATE THE ACCELEROMETER VALUES.
+	normalizedAccX = (accX * acc11) + (accY * acc12) + (accZ * acc13) + acc10;
+	normalizedAccY = (accX * acc21) + (accY * acc22) + (accZ * acc23) + acc20;
+	normalizedAccZ = (accX * acc31) + (accY * acc32) + (accZ * acc33) + acc30;
 	
-//	HAL_GPIO_WritePin(GPIOE,GPIO_PIN_11, GPIO_PIN_SET);
-//	HAL_GPIO_WritePin(GPIOE,GPIO_PIN_12, GPIO_PIN_SET);
-//	HAL_GPIO_WritePin(GPIOE,GPIO_PIN_13, GPIO_PIN_SET);
-//	HAL_GPIO_WritePin(GPIOE,GPIO_PIN_14, GPIO_PIN_SET);
+	// FILTER THE ACCELEROMETER VALUES.
+	unfilteredAccX[2] = unfilteredAccX[1];
+	unfilteredAccX[1] = unfilteredAccX[0];
+	unfilteredAccX[0] = normalizedAccX;
+	unfilteredAccY[2] = unfilteredAccY[1];
+	unfilteredAccY[1] = unfilteredAccY[0];
+	unfilteredAccY[0] = normalizedAccY;
+	unfilteredAccZ[2] = unfilteredAccZ[1];
+	unfilteredAccZ[1] = unfilteredAccZ[0];
+	unfilteredAccZ[0] = normalizedAccZ;
 	
+	finalAccX = (b0 * unfilteredAccX[0]) + (b1 * unfilteredAccX[1]) + (b2 * unfilteredAccX[2]) + (a1 * filteredAccX[0]) + (a2 * filteredAccX[1]);
+	finalAccY = (b0 * unfilteredAccY[0]) + (b1 * unfilteredAccY[1]) + (b2 * unfilteredAccY[2]) + (a1 * filteredAccY[0]) + (a2 * filteredAccY[1]);
+	finalAccZ = (b0 * unfilteredAccZ[0]) + (b1 * unfilteredAccZ[1]) + (b2 * unfilteredAccZ[2]) + (a1 * filteredAccZ[0]) + (a2 * filteredAccZ[1]);
 	
+	filteredAccX[1] = filteredAccX[0];
+	filteredAccX[0] = finalAccX;
+	filteredAccY[1] = filteredAccY[0];
+	filteredAccY[0] = finalAccY;
+	filteredAccZ[1] = filteredAccZ[0];
+	filteredAccZ[0] = finalAccZ;
 	
-	LIS3DSH_ReadACC(&Buffer[0]);
-	accX = (float)Buffer[0];
-	accY = (float)Buffer[1];
-	accZ = (float)Buffer[2];
-	//printf(" %3f   , %3f   , %3f  \n", accX, accY, accZ );
+	// COMPUTE THE ROLL AND PITCH ANGLES.
+	rollAngle  = (180/3.141592654) * atan2f(((-1) * finalAccX), finalAccZ);
+	pitchAngle = (180/3.141592654) * atan2f(finalAccY, finalAccZ);
 	
-	normalizedAccX = accX*acc11 + accY*acc12 + accZ*acc13 + acc10;
-	normalizedAccY = accX*acc21 + accY*acc22 + accZ*acc23 + acc20;
-	normalizedAccZ = accX*acc31 + accY*acc32 + accZ*acc33 + acc30;
+	if(rollAngle < 0)
+	{
+		 rollAngle = rollAngle + 360;
+	}
+	if(pitchAngle < 0)
+	{
+		 pitchAngle = pitchAngle + 360;
+	}
 	
-	//printf(" %3f   , %3f   , %3f  \n", normalizedAccX, normalizedAccY, normalizedAccZ );
+	double deltaRoll = rollAngle - targetRollAngle;
+	double deltaPitch = pitchAngle - targetPitchAngle;
+	
+	if(deltaRoll < 0)
+	{
+		deltaRoll = deltaRoll * -1;
+	}
+	if(deltaPitch < 0)
+	{
+		deltaPitch = deltaPitch * -1;
+	}
+	
+	// IF THE ACTUAL ANGLE IS WHITHIN 5 DEGREES OF THE TARGET ANGLE, YOU WIN!!!
+	if(deltaRoll < 5)
+	{
+		deltaRoll = 0;
+	}
+	if(deltaPitch < 5)
+	{
+		deltaPitch = 0;
+	}
+	
+	// UPDATE THE BRIGHTNESS OF THE LEDS. RED AND GREEN ROLL, BLUE AND ORANGE FOR PITCH.
+	updatePulse(deltaRoll,  TIM_CHANNEL_3, &htim4);
+	updatePulse(deltaRoll,  TIM_CHANNEL_1, &htim4);
+	updatePulse(deltaPitch, TIM_CHANNEL_4, &htim4);
+	updatePulse(deltaPitch, TIM_CHANNEL_2, &htim4);
+	
+	//printf(" %3f , %3f \n", rollAngle, pitchAngle);
 }
 
 
 void SystemClock_Config(void)
 {
-
   RCC_OscInitTypeDef RCC_OscInitStruct;
   RCC_ClkInitTypeDef RCC_ClkInitStruct;
 	
   __PWR_CLK_ENABLE();
-
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = 8;
-  RCC_OscInitStruct.PLL.PLLN = 336;
-  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-  RCC_OscInitStruct.PLL.PLLQ = 7;
+  RCC_OscInitStruct.HSEState       = RCC_HSE_ON;
+  RCC_OscInitStruct.PLL.PLLState   = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource  = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLM       = 8;
+  RCC_OscInitStruct.PLL.PLLN       = 336;
+  RCC_OscInitStruct.PLL.PLLP       = RCC_PLLP_DIV2;
+  RCC_OscInitStruct.PLL.PLLQ       = 7;
   HAL_RCC_OscConfig(&RCC_OscInitStruct);
 
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_SYSCLK|RCC_CLOCKTYPE_PCLK1
-                              |RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.ClockType      = RCC_CLOCKTYPE_SYSCLK|RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource   = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider  = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
   HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5);
 
   HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000);
-
   HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
 
   /* SysTick_IRQn interrupt configuration */
@@ -230,11 +276,26 @@ void SystemClock_Config(void)
 /* USER CODE BEGIN 4 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-	// TIMER 2: This gets called every 1 ms.
+	// TIMER 2: This interrupt gets called every 10 ms.
   if(htim == &htim2)
   {
+		
+		if(timer2Counter == 0)
+		{
+			//currentRow = getPressedRow();
+			timer2Counter++;
+		}
+		else
+		{
+			//currentColumn = getPressedColumn();
+			timer2Counter = 0;
+		}
+		
 		//printf("TIM2 calleback");
-		int key = getPressedKey();
+		currentRow = getPressedRow();
+		currentColumn = getPressedColumn();
+		int key = getPressedKey(currentRow, currentColumn);
+		printf(" current key pressed is: %d  \n", key);
 		
 		if(key == currentKeyPressed && key != -1)
 		{
@@ -242,51 +303,26 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		}
 		else if(key != currentKeyPressed && key ==1)
 		{
-			printf(" current key pressed is: %d \n counter: %d  \n", currentKeyPressed, keyPressedCounter);
+			//printf(" current key pressed is: %d \n counter: %d  \n", currentKeyPressed, keyPressedCounter);
 		}
 	}
 
 }
 /* USER CODE END 4 */
-void initializeACC(void){
-	
-	Acc_instance.Axes_Enable				= LIS3DSH_XYZ_ENABLE;
-	Acc_instance.AA_Filter_BW				= LIS3DSH_AA_BW_50;
-	Acc_instance.Full_Scale					= LIS3DSH_FULLSCALE_2;
-	Acc_instance.Power_Mode_Output_DataRate		= LIS3DSH_DATARATE_50;
-	Acc_instance.Self_Test					= LIS3DSH_SELFTEST_NORMAL;
-	Acc_instance.Continous_Update   = LIS3DSH_ContinousUpdate_Enabled;
+void initializeACC(void)
+{
+	Acc_instance.Axes_Enable				        = LIS3DSH_XYZ_ENABLE;
+	Acc_instance.AA_Filter_BW				        = LIS3DSH_AA_BW_50;
+	Acc_instance.Full_Scale					        = LIS3DSH_FULLSCALE_2;
+	Acc_instance.Power_Mode_Output_DataRate	= LIS3DSH_DATARATE_50;
+	Acc_instance.Self_Test					        = LIS3DSH_SELFTEST_NORMAL;
+	Acc_instance.Continous_Update           = LIS3DSH_ContinousUpdate_Enabled;
 	
 	LIS3DSH_Init(&Acc_instance);	
 	
 	/* Enabling interrupt conflicts with push button. Be careful when you plan to 
-	use the interrupt of the accelerometer sensor connceted to PIN A.0
-
-	*/
+	use the interrupt of the accelerometer sensor connceted to PIN A.0 */
 }
-
-void IIR_C(float* inputArray, float* outputArray, int i, float* coeff)
-{
-	if(i == 0)
-	{
-		// For the first element in the array: y[0] = b0 * x[0].
-		outputArray[i] = coeff[0] * inputArray[i];
-	}
-	else if(i == 1)
-	{
-		// For the second element in the array: y[1] = b0 * x[1] + b1 * x[0] + a1 * y[0].
-		outputArray[i] = coeff[0] * inputArray[i] + coeff[1] * inputArray[i-1] + coeff[3] * outputArray[i-1];
-	}
-	else
-	{
-		// For all other elements in the array: y[n] = b0 * x[n] + b1 * x[n-1] + b2 * x[n-2]. + a1 * y[n-1] + a2 * y[n-2].
-		outputArray[0] = coeff[0] * inputArray[i] + coeff[1] * inputArray[i-1] + coeff[2] * inputArray[i-2] + coeff[3] * outputArray[i-1] + coeff[4] * outputArray[i-2];
-		outputArray[2] = outputArray[1];
-		outputArray[1] = outputArray[0];
-	}
-	return;
-}
-
 
 #ifdef USE_FULL_ASSERT
 

@@ -8,7 +8,7 @@ void setColsAsInputs(void);
 void setRowsAsInputs(void);
 int getPressedColumn(void);
 int getPressedRow(void);
-int getPressedKey(void);
+int getPressedKey(int row, int column);
 int interpretKey(void);
 int resetkey(void);
 

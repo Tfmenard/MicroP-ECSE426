@@ -61,6 +61,8 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
 /* USER CODE BEGIN Prototypes */
 
+void updatePulse(double delta_deg,uint32_t TIM_CHANNEL, TIM_HandleTypeDef * TIM_HANDLER);
+
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus

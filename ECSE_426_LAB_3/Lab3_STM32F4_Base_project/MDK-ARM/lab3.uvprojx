@@ -517,7 +517,7 @@
             <File>
               <FileName>keypad4x4.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\keypad4x4.c</FilePath>
+              <FilePath>..\Src\keypad4x4.c</FilePath>
             </File>
           </Files>
         </Group>

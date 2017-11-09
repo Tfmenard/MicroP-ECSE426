@@ -56,7 +56,7 @@ void MX_TIM2_Init(void)
   htim2.Instance = TIM2;
   htim2.Init.Prescaler = 6250;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 10;
+  htim2.Init.Period = 100;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
   {
@@ -237,9 +237,10 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef* timHandle)
 
 }
 
-void UpdatePulse(int delta_deg,uint32_t TIM_CHANNEL, TIM_HandleTypeDef * TIM_HANDLER){
+void updatePulse(double delta_deg,uint32_t TIM_CHANNEL, TIM_HandleTypeDef * TIM_HANDLER)
+{
 	//Percentage of degree difference to period determines the pulse
-	TIM4_ConfigHandler.Pulse = (delta_deg/180.0)*TIM_HANDLER->Init.Period;
+	TIM4_ConfigHandler.Pulse = (delta_deg/360.0)*TIM_HANDLER->Init.Period;
 	HAL_TIM_PWM_ConfigChannel(TIM_HANDLER, &TIM4_ConfigHandler,TIM_CHANNEL);		
 	HAL_TIM_PWM_Start(TIM_HANDLER, TIM_CHANNEL);	
 }

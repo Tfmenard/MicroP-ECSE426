@@ -33,3 +33,4 @@ lab3 configuration/\main.o: ../Inc/gpio.h
 lab3 configuration/\main.o: ../Inc/lis3dsh.h
 lab3 configuration/\main.o: ../Inc/tim.h
 lab3 configuration/\main.o: ../Inc/keypad4x4.h
+lab3 configuration/\main.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\math.h
