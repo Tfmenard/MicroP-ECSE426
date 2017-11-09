@@ -39,9 +39,10 @@
 /* USER CODE BEGIN 0 */
 #include "lis3dsh.h"
 /* USER CODE END 0 */
-
+	
 /* External variables --------------------------------------------------------*/
 extern int SysTickCount;
+extern TIM_HandleTypeDef htim2;
 /******************************************************************************/
 /*            Cortex-M4 Processor Interruption and Exception Handlers         */ 
 /******************************************************************************/
@@ -73,6 +74,11 @@ void SysTick_Handler(void)
 void EXTI0_IRQHandler(void)
 {
 	HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0);
+}
+
+void TIM2_IRQHandler(void)
+{
+	HAL_TIM_IRQHandler(&htim2);
 }
 /* USER CODE END 1 */
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

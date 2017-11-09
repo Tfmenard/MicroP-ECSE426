@@ -41,10 +41,42 @@
 
 /* USER CODE END 0 */
 
+TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
 
 TIM_OC_InitTypeDef TIM4_ConfigHandler;
+
+/* TIM2 init function */
+void MX_TIM2_Init(void)
+{
+  TIM_ClockConfigTypeDef sClockSourceConfig;
+  TIM_MasterConfigTypeDef sMasterConfig;
+
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 6250;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 10;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    //_Error_Handler(__FILE__, __LINE__);
+  }
+
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    //_Error_Handler(__FILE__, __LINE__);
+  }
+
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    //_Error_Handler(__FILE__, __LINE__);
+  }
+
+}
 
 /* TIM3 init function */
 void MX_TIM3_Init(void)
@@ -177,8 +209,8 @@ void MX_TIM4_Init_Alt(void)
 
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef* timHandle)
 {
-
-  GPIO_InitTypeDef GPIO_InitStruct;
+	
+	GPIO_InitTypeDef GPIO_InitStruct;
   if(timHandle->Instance==TIM4)
   
   /* USER CODE BEGIN TIM4_MspPostInit 0 */
@@ -216,7 +248,18 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim_base)
 {
 
   GPIO_InitTypeDef GPIO_InitStruct;
-  if(htim_base->Instance==TIM4)
+	if(htim_base->Instance==TIM2)
+  {
+
+    /* TIM2 clock enable */
+    __HAL_RCC_TIM2_CLK_ENABLE();
+
+    /* TIM2 interrupt Init */
+    HAL_NVIC_SetPriority(TIM2_IRQn, 0, 1);
+    HAL_NVIC_EnableIRQ(TIM2_IRQn);
+
+  }
+  else if(htim_base->Instance==TIM4)
   {
   /* USER CODE BEGIN TIM3_MspInit 0 */
 

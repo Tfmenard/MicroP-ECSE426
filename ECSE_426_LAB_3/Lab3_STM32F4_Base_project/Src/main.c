@@ -35,6 +35,7 @@
 #include "gpio.h"
 #include "lis3dsh.h"
 #include "tim.h"
+#include "keypad4x4.h"
 
 #include <stm32f4xx_hal_rcc.h>
 #include <stm32f4xx_hal_tim.h>
@@ -48,22 +49,50 @@ SPI_HandleTypeDef *hspi;
 uint8_t status;
 float Buffer[3];
 float accX, accY, accZ;
+float normalizedAccX, normalizedAccY, normalizedAccZ;
+
+float acc11, acc12, acc13, acc10,
+			acc21, acc22, acc23, acc20,
+			acc31, acc32, acc33, acc30;
+
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 void initializeACC			(void);
 int SysTickCount;
 
+int keyPressedCounter;
+int currentKeyPressed;
 
 int main(void)
 {
+	acc11 = 0.00101492331;
+	acc12 = 0.00000698307;
+	acc13 = 0.00000805562;
+	acc10 = 0.00221516886;
+	
+	acc21 = -0.00007170752;
+	acc22 = 0.00095980401;
+	acc23 = 0.00002352682;
+	acc20 = 0.01772957335;
+	
+	acc31 = -0.00010254170;
+	acc32 = -0.00001399401;
+	acc33 = 0.00098730978;
+	acc30 = -0.00523204952;
+	
+	currentKeyPressed = -1;
+	keyPressedCounter = 0;
+	
+	
 	interruptCfg.Dataready_Interrupt = LIS3DSH_DATA_READY_INTERRUPT_ENABLED;
 	interruptCfg.Interrupt_signal = LIS3DSH_ACTIVE_HIGH_INTERRUPT_SIGNAL;
 	interruptCfg.Interrupt_type = LIS3DSH_INTERRUPT_REQUEST_PULSED;
 	
 	
 	HAL_NVIC_EnableIRQ(EXTI0_IRQn);
-	HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 1);
+	HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
+
 
 	initializeACC	();
 	HAL_SPI_MspInit(hspi);
@@ -80,21 +109,21 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
 	
-	//MX_TIM3_Init();
-	//MX_TIM4_Init();
+	MX_TIM2_Init();
 	
 	MX_TIM4_Init_Alt();
 	
+	HAL_TIM_Base_Start_IT(&htim2);
 	HAL_TIM_Base_Start(&htim4); 
 	
-	//Green LED
+	// Green LED
 	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
-	//Orange LED
-	HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_2);
-	//Red LED
-	HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_3);
-	//Blue LED
-	HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_4);
+	// Orange LED
+	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
+	// Red LED
+	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
+	// Blue LED
+	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4);
 
 
 	
@@ -152,9 +181,15 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	accX = (float)Buffer[0];
 	accY = (float)Buffer[1];
 	accZ = (float)Buffer[2];
-	printf(" %3f   , %3f   , %3f  \n", accX, accY, accZ );
+	//printf(" %3f   , %3f   , %3f  \n", accX, accY, accZ );
 	
+	normalizedAccX = accX*acc11 + accY*acc12 + accZ*acc13 + acc10;
+	normalizedAccY = accX*acc21 + accY*acc22 + accZ*acc23 + acc20;
+	normalizedAccZ = accX*acc31 + accY*acc32 + accZ*acc33 + acc30;
+	
+	//printf(" %3f   , %3f   , %3f  \n", normalizedAccX, normalizedAccY, normalizedAccZ );
 }
+
 
 void SystemClock_Config(void)
 {
@@ -193,7 +228,25 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+	// TIMER 2: This gets called every 1 ms.
+  if(htim == &htim2)
+  {
+		//printf("TIM2 calleback");
+		int key = getPressedKey();
+		
+		if(key == currentKeyPressed && key != -1)
+		{
+			keyPressedCounter++;
+		}
+		else if(key != currentKeyPressed && key ==1)
+		{
+			printf(" current key pressed is: %d \n counter: %d  \n", currentKeyPressed, keyPressedCounter);
+		}
+	}
 
+}
 /* USER CODE END 4 */
 void initializeACC(void){
 	
@@ -211,6 +264,29 @@ void initializeACC(void){
 
 	*/
 }
+
+void IIR_C(float* inputArray, float* outputArray, int i, float* coeff)
+{
+	if(i == 0)
+	{
+		// For the first element in the array: y[0] = b0 * x[0].
+		outputArray[i] = coeff[0] * inputArray[i];
+	}
+	else if(i == 1)
+	{
+		// For the second element in the array: y[1] = b0 * x[1] + b1 * x[0] + a1 * y[0].
+		outputArray[i] = coeff[0] * inputArray[i] + coeff[1] * inputArray[i-1] + coeff[3] * outputArray[i-1];
+	}
+	else
+	{
+		// For all other elements in the array: y[n] = b0 * x[n] + b1 * x[n-1] + b2 * x[n-2]. + a1 * y[n-1] + a2 * y[n-2].
+		outputArray[0] = coeff[0] * inputArray[i] + coeff[1] * inputArray[i-1] + coeff[2] * inputArray[i-2] + coeff[3] * outputArray[i-1] + coeff[4] * outputArray[i-2];
+		outputArray[2] = outputArray[1];
+		outputArray[1] = outputArray[0];
+	}
+	return;
+}
+
 
 #ifdef USE_FULL_ASSERT
 
