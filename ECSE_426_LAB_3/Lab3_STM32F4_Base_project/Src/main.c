@@ -37,6 +37,7 @@
 #include "tim.h"
 #include "keypad4x4.h"
 #include "math.h"
+#include "main.h"
 
 #include <stm32f4xx_hal_rcc.h>
 #include <stm32f4xx_hal_tim.h>
@@ -97,26 +98,44 @@ double rollAngle;
 double pitchAngle;
 
 // THESE VARIABLES STORE THE TARGET ROLL AND PITCH ANGLES (ENTERED ON THE KEYPAD).
-double targetRollAngle  = 45.0;
-double targetPitchAngle = 45.0;
+int targetRollAngle  = 0;
+int targetPitchAngle = 0;
+
+// THIS ARRAY KEEPS TRACK OF THE DIGIT TO BE DISPLAYED ON THE 7-SEGMENT DISPLAY.
+int digitArray[3] = {0, 0, 0};
+
+// THIS VARIABLE KEEPS TRACK OF WHICH DIGIT OF THE LED DISPLAY SHOULD BE LIGHT UP.
+int digitCounter = 0;
+
+// THIS COUNTER IS USED TO REFRESH THE VALUE OF THE 7-SEGMENT DISPLAY EVERY 1 MS.
+int refreshCounter = 0;
+
+// THIS VARIABLE KEEPS TRACK OF THE CURRENT KEY PRESSED.
+int currentKeyPressed = -1;
+
+// THIS VARIABLE KEEPS TRACK OF HOW LONG A KEY IS PRESSED.
+int keyPressedCounter = 0;
+
+// THIS VARIABLE KEEPS TRACK OF THE STATE.
+// STATE 1: ENTER ROLL ANGLE.
+// STATE 2: ENTER PITCH ANGLE.
+// STATE 3: OPERATION MODE.
+// STATE 4: SLEEP MODE.
+int FSM_state = 1;
+
+// THIS VARIABLE KEEPS TRACK OF WHICH STATE TO GO BACK TO AFTER WAKING UP FROM SLEEP MODE.
+int wake_up_state = 1;
+
+// THIS BOOLEAN VARIABLE KEEPS TRACK OF WHETHER THE ROLL OR PITCH ANGLE SHOULD BE DISPLAYED IN OPERATION MODE.
+int isRollAngleDisplayed = 1;
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 void initializeACC			(void);
 int SysTickCount;
 
-int keyPressedCounter;
-int currentKeyPressed;
-int timer2Counter;
-int currentRow;
-int currentColumn;
-
 int main(void)
 {
-	currentKeyPressed = -1;
-	keyPressedCounter = 0;
-	timer2Counter = 0;
-	
 	interruptCfg.Dataready_Interrupt = LIS3DSH_DATA_READY_INTERRUPT_ENABLED;
 	interruptCfg.Interrupt_signal = LIS3DSH_ACTIVE_HIGH_INTERRUPT_SIGNAL;
 	interruptCfg.Interrupt_type = LIS3DSH_INTERRUPT_REQUEST_PULSED;
@@ -151,6 +170,7 @@ int main(void)
 	// Blue LED
 	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4);
 
+	printf("ENTER ROLL ANGLE! \n\n");
   while(1)
   {
 	
@@ -232,12 +252,63 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	}
 	
 	// UPDATE THE BRIGHTNESS OF THE LEDS. RED AND GREEN ROLL, BLUE AND ORANGE FOR PITCH.
-	updatePulse(deltaRoll,  TIM_CHANNEL_3, &htim4);
-	updatePulse(deltaRoll,  TIM_CHANNEL_1, &htim4);
-	updatePulse(deltaPitch, TIM_CHANNEL_4, &htim4);
-	updatePulse(deltaPitch, TIM_CHANNEL_2, &htim4);
+	if(FSM_state == 3)
+	{
+		updatePulse(deltaRoll,  TIM_CHANNEL_3, &htim4);
+		updatePulse(deltaRoll,  TIM_CHANNEL_1, &htim4);
+		updatePulse(deltaPitch, TIM_CHANNEL_4, &htim4);
+		updatePulse(deltaPitch, TIM_CHANNEL_2, &htim4);
+	}
+	else
+	{
+		updatePulse(0,  TIM_CHANNEL_3, &htim4);
+		updatePulse(0,  TIM_CHANNEL_1, &htim4);
+		updatePulse(0, TIM_CHANNEL_4, &htim4);
+		updatePulse(0, TIM_CHANNEL_2, &htim4);
+	}
 	
-	//printf(" %3f , %3f \n", rollAngle, pitchAngle);
+	// UPDATE THE DIGIT ARRAY TO BE DISPLAYED ON THE 7-SEGMENT DISPLAY.
+	refreshCounter++;
+	if(refreshCounter == 50)
+	{
+		switch(FSM_state)
+		{
+			// STATE 1: ENTER ROLL ANGLE.
+			case 1:
+				digitArray[0] = (targetRollAngle / 100) % 10;
+				digitArray[1] = (targetRollAngle / 10)  % 10;
+				digitArray[2] = (targetRollAngle / 1)   % 10;
+				break;
+	
+			// STATE 2: ENTER PITCH ANGLE.
+			case 2:
+				digitArray[0] = (targetPitchAngle / 100) % 10;
+				digitArray[1] = (targetPitchAngle / 10)  % 10;
+				digitArray[2] = (targetPitchAngle / 1)   % 10;
+				break;
+		
+			// STATE 3: OPERATION MODE.
+			case 3:
+				if(isRollAngleDisplayed == 1)
+				{
+					digitArray[0] = ((int)(rollAngle / 100)) % 10;
+					digitArray[1] = ((int)(rollAngle / 10))  % 10;
+					digitArray[2] = ((int)(rollAngle / 1))   % 10;
+				}
+				else
+				{
+					digitArray[0] = ((int)(pitchAngle / 100)) % 10;
+					digitArray[1] = ((int)(pitchAngle / 10))  % 10;
+					digitArray[2] = ((int)(pitchAngle / 1))   % 10;
+				}
+				break;
+		
+			// STATE 4: SLEEP MODE.
+			case 4:
+				break;
+		}
+		refreshCounter = 0;
+	}
 }
 
 
@@ -276,38 +347,337 @@ void SystemClock_Config(void)
 /* USER CODE BEGIN 4 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-	// TIMER 2: This interrupt gets called every 10 ms.
+	// THE INTERRUPT OF TIMER 2 GETS CALLED EVERY 7 MS.
   if(htim == &htim2)
   {
+		int key = getKeyPressed();
 		
-		if(timer2Counter == 0)
+		if(key != -1)
 		{
-			//currentRow = getPressedRow();
-			timer2Counter++;
+			currentKeyPressed = key;
+			if(keyPressedCounter < 1000)
+			{
+				keyPressedCounter++;
+			}
+		}
+		else if(key != currentKeyPressed && key == -1)
+		{
+			printf("The key %d was pressed for %d ms. \n", currentKeyPressed, keyPressedCounter * 7);
+			fsmEvent(currentKeyPressed, keyPressedCounter);
+			currentKeyPressed = -1;
+			keyPressedCounter = 0;
+		}
+		
+		// REFRESH THE SEGMENT DISPLAY AND UPDATE THE DIGIT COUNTER.
+		if(FSM_state == 4)
+		{
+			displayNumberOnTrgtDigit(digitArray[digitCounter], 0);
 		}
 		else
 		{
-			//currentColumn = getPressedColumn();
-			timer2Counter = 0;
-		}
-		
-		//printf("TIM2 calleback");
-		currentRow = getPressedRow();
-		currentColumn = getPressedColumn();
-		int key = getPressedKey(currentRow, currentColumn);
-		printf(" current key pressed is: %d  \n", key);
-		
-		if(key == currentKeyPressed && key != -1)
-		{
-			keyPressedCounter++;
-		}
-		else if(key != currentKeyPressed && key ==1)
-		{
-			//printf(" current key pressed is: %d \n counter: %d  \n", currentKeyPressed, keyPressedCounter);
+			displayNumberOnTrgtDigit(digitArray[digitCounter], (digitCounter + 1));
+			digitCounter = (digitCounter + 1) % 3;
 		}
 	}
-
 }
+
+// THIS FUNCTION SELECTS THE PROVIDED NUMBER TO BE LIGHT UP (SELECTS THE RIGHT SEGMENTS OF THE 7-SEGMENT DISPLAY).
+void displayNumberOn7Segment(int number) 
+{   
+    switch(number) 
+    {
+      case 0:
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_0, GPIO_PIN_SET); //A
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_1, GPIO_PIN_SET); //B
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_2, GPIO_PIN_SET); //C
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_3, GPIO_PIN_SET); //D
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_4, GPIO_PIN_SET); //E
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_5, GPIO_PIN_SET); //F
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_RESET); //G
+        break;
+      
+      case 1:
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_0, GPIO_PIN_RESET); //A
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_1, GPIO_PIN_SET); //B
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_2, GPIO_PIN_SET); //C
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_3, GPIO_PIN_RESET); //D
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_4, GPIO_PIN_RESET); //E
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_5, GPIO_PIN_RESET); //F
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_RESET); //G
+        break;
+        
+      case 2:
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_0, GPIO_PIN_SET); //A
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_1, GPIO_PIN_SET); //B
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_2, GPIO_PIN_RESET); //C
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_3, GPIO_PIN_SET); //D
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_4, GPIO_PIN_SET); //E
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_5, GPIO_PIN_RESET); //F
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_SET); //G
+        break;
+      
+      case 3:
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_0, GPIO_PIN_SET); //A
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_1, GPIO_PIN_SET); //B
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_2, GPIO_PIN_SET); //C
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_3, GPIO_PIN_SET); //D
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_4, GPIO_PIN_RESET); //E
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_5, GPIO_PIN_RESET); //F
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_SET); //G
+        break;
+      
+      case 4:
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_0, GPIO_PIN_RESET); //A
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_1, GPIO_PIN_SET); //B
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_2, GPIO_PIN_SET); //C
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_3, GPIO_PIN_RESET); //D
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_4, GPIO_PIN_RESET); //E
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_5, GPIO_PIN_SET); //F
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_SET); //G
+        break;
+      
+      case 5:
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_0, GPIO_PIN_SET); //A
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_1, GPIO_PIN_RESET); //B
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_2, GPIO_PIN_SET); //C
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_3, GPIO_PIN_SET); //D
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_4, GPIO_PIN_RESET); //E
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_5, GPIO_PIN_SET); //F
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_SET); //G
+        break;
+      
+      case 6:
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_0, GPIO_PIN_SET); //A
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_1, GPIO_PIN_RESET); //B
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_2, GPIO_PIN_SET); //C
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_3, GPIO_PIN_SET); //D
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_4, GPIO_PIN_SET); //E
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_5, GPIO_PIN_SET); //F
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_SET); //G
+        break;
+      
+      case 7:
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_0, GPIO_PIN_SET); //A
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_1, GPIO_PIN_SET); //B
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_2, GPIO_PIN_SET); //C
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_3, GPIO_PIN_RESET); //D
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_4, GPIO_PIN_RESET); //E
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_5, GPIO_PIN_RESET); //F
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_RESET); //G
+        break;
+      
+      case 8:
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_0, GPIO_PIN_SET); //A
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_1, GPIO_PIN_SET); //B
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_2, GPIO_PIN_SET); //C
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_3, GPIO_PIN_SET); //D
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_4, GPIO_PIN_SET); //E
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_5, GPIO_PIN_SET); //F
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_SET); //G
+        break;
+      
+      case 9:
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_0, GPIO_PIN_SET); //A
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_1, GPIO_PIN_SET); //B
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_2, GPIO_PIN_SET); //C
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_3, GPIO_PIN_SET); //D
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_4, GPIO_PIN_RESET); //E
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_5, GPIO_PIN_SET); //F
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_6, GPIO_PIN_SET); //G
+        break;
+    }
+}
+  
+// THIS FUNCTION SELECTS THE PROVIDED DIGIT TO BE LIGHT UP.
+void selectTrgt7SegmentDisplayDigit(int trgtDigit)
+{
+  switch(trgtDigit)
+  {
+		// First digit.
+    case 1:
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_7, GPIO_PIN_RESET); // Shut down Decimal point
+      break;
+    
+		// Second digit.
+    case 2:
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_SET); 
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_7, GPIO_PIN_RESET); // Shut down Decimal point
+      break;
+    
+		// Third digit.
+    case 3:
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_7, GPIO_PIN_RESET); // Shut down Decimal point
+      break;
+		
+		// No digit.
+    case 0:
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_7, GPIO_PIN_RESET); // Shut down Decimal point
+      break;
+  }
+}
+
+// THIS FUNCTION LIGHTS UP THE PROVIDED NUMBER ON THE PROVIDED DIGIT.
+void displayNumberOnTrgtDigit(int number, int trgtDigit)
+{ 
+  selectTrgt7SegmentDisplayDigit(trgtDigit);
+  displayNumberOn7Segment(number);
+}
+
+// THIS FUNCTION HANDLES THE FINITE STATE MACHINE.
+void fsmEvent(int keyPressed, int keyPressedCounter)
+{
+	switch(FSM_state)
+	{
+		// STATE 1: ENTER ROLL ANGLE.
+		case 1:
+			if(keyPressed == 0 || keyPressed == 1 || keyPressed == 2 || keyPressed == 3 || keyPressed == 4 || keyPressed == 5 || keyPressed == 6 || keyPressed == 7 || keyPressed == 8 || keyPressed == 9)
+			{
+				targetRollAngle = (targetRollAngle * 10) + keyPressed;
+				printf("TARGET ROLL ANGLE: %d \n\n", targetRollAngle);
+			}
+			else if(keyPressed == 10)
+			{
+				if(targetRollAngle >= 0 && targetRollAngle <= 180)
+				{
+					FSM_state = 2;
+					printf("VALID TARGET ROLL ANGLE: %d \n", targetRollAngle);
+					printf("ENTER PITCH ANGLE! \n\n");
+				}
+				else
+				{
+					printf("INVALID TARGET ROLL ANGLE: %d \n", targetRollAngle);
+					printf("ENTER ROLL ANGLE BETWEEN 0 AND 180! \n\n");
+					targetRollAngle = 0;
+				}
+			}
+			else if(keyPressed == 11 && keyPressedCounter > 428)
+			{
+				FSM_state = 4;
+				wake_up_state = 1;
+				printf("SLEEP MODE. GOOD NIGHT! \n\n");
+			}
+			else if(keyPressed == 11 && keyPressedCounter > 285)
+			{
+				targetRollAngle = 0;
+				targetPitchAngle = 0;
+				FSM_state = 1;
+				printf("RESET. ENTER ROLL ANGLE! \n\n");
+			}
+			else if(keyPressed == 11)
+			{
+				targetRollAngle = targetRollAngle / 10;
+				printf("[BACKSPACE] TARGET ROLL ANGLE: %d \n\n", targetRollAngle);
+			}
+			else
+			{
+				// Nothing should happen.
+			}
+			break;
+	
+		// STATE 2: ENTER PITCH ANGLE.
+		case 2:
+			if(keyPressed == 1 || keyPressed == 2 || keyPressed == 3 || keyPressed == 4 || keyPressed == 5 || keyPressed == 6 || keyPressed == 7 || keyPressed == 8 || keyPressed == 9)
+			{
+				targetPitchAngle = (targetPitchAngle * 10) + keyPressed;
+				printf("TARGET PITCH ANGLE: %d \n\n", targetPitchAngle);
+			}
+			else if(keyPressed == 10)
+			{
+				if(targetPitchAngle >= 0 && targetPitchAngle <= 180)
+				{
+					FSM_state = 3;
+					printf("VALID TARGET PITCH ANGLE: %d \n", targetPitchAngle);
+					printf("PLAY THE GAME! \n\n");
+				}
+				else
+				{
+					printf("INVALID TARGET PITCH ANGLE: %d \n", targetPitchAngle);
+					printf("ENTER PITCH ANGLE BETWEEN 0 AND 180! \n\n");
+					targetPitchAngle = 0;
+				}
+			}
+			else if(keyPressed == 11 && keyPressedCounter > 428)
+			{
+				FSM_state = 4;
+				wake_up_state = 2;
+				printf("SLEEP MODE. GOOD NIGHT! \n\n");
+			}
+			else if(keyPressed == 11 && keyPressedCounter > 285)
+			{
+				targetRollAngle = 0;
+				targetPitchAngle = 0;
+				FSM_state = 1;
+				printf("RESET. ENTER ROLL ANGLE! \n\n");
+			}
+			else if(keyPressed == 11)
+			{
+				targetPitchAngle = targetPitchAngle / 10;
+				printf("[BACKSPACE] TARGET PITCH ANGLE: %d \n\n", targetPitchAngle);
+			}
+			else
+			{
+				// Nothing should happen.
+			}
+			break;
+		
+		// STATE 3: OPERATION MODE.
+		case 3:
+			if(keyPressed == 1)
+			{
+				isRollAngleDisplayed = 1;
+				printf("DISPLAY ROLL ANGLE! \n\n");
+			}
+			else if(keyPressed == 2)
+			{
+				isRollAngleDisplayed = 0;
+				printf("DISPLAY PITCH ANGLE! \n\n");
+			}
+			else if(keyPressed == 11 && keyPressedCounter > 428)
+			{
+				FSM_state = 4;
+				wake_up_state = 3;
+				printf("SLEEP MODE. GOOD NIGHT! \n\n");
+			}
+			else if(keyPressed == 11 && keyPressedCounter > 285)
+			{
+				targetRollAngle = 0;
+				targetPitchAngle = 0;
+				FSM_state = 1;
+				printf("RESET. ENTER ROLL ANGLE! \n\n");
+			}
+			else
+			{
+				// Nothing should happen.
+			}
+			break;
+		
+		// STATE 4: SLEEP MODE.
+		case 4:
+			if(keyPressed == 10 && keyPressedCounter > 428)
+			{
+				FSM_state = wake_up_state;
+				printf("WAKING UP. HELLO! \n\n");
+			}
+			else
+			{
+				// Nothing should happen.
+			}
+			break;
+	}
+	return;
+}
+
 /* USER CODE END 4 */
 void initializeACC(void)
 {

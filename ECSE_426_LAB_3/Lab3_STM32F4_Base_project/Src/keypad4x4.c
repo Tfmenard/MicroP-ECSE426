@@ -4,159 +4,128 @@
 #include "keypad4x4.h"
 #include <stdio.h>
 
-
-const int keypadMap[4][4] = {
-	{1, 2, 3, 20},  //20 =  A
-	{4, 5, 6, 21},	//21 = B
-	{7, 8, 9, 22},	//22 = C
-	{11, 0, 12, 23} //23 = D
+const int keypadMap[4][4] =
+{
+	{1,  2,  3,  20}, // 20 = A
+	{4,  5,  6,  21},	// 21 = B
+	{7,  8,  9,  22},	// 22 = C
+	{0, 10, 11,  23}  // 23 = D
 };
-
 
 GPIO_InitTypeDef COLS_GPIO_init;
 GPIO_InitTypeDef ROWS_GPIO_init;
 
-// Set columns as inputs and rows as outputs to read the read values on columns
-void setColsAsInputs(void)
+// THIS FUNCTION SETS THE COLUMNS AS INPUT.
+void setColumnsAsInput(void)
 {
-	// Set the columns as inputs and initialize struct
 	__HAL_RCC_GPIOE_CLK_ENABLE();
-	COLS_GPIO_init.Pin = GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10; 
-	COLS_GPIO_init.Mode = GPIO_MODE_INPUT; // Configure column as input
-	COLS_GPIO_init.Pull = GPIO_PULLDOWN; // Pin value set to high
-	COLS_GPIO_init.Speed = GPIO_SPEED_LOW;
-	HAL_GPIO_Init(GPIOE,&COLS_GPIO_init); 
+	
+	// COLUMN = INPUT.
+	COLS_GPIO_init.Pin   = GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10;
+	COLS_GPIO_init.Mode  = GPIO_MODE_INPUT;
+	COLS_GPIO_init.Pull  = GPIO_PULLUP;
+	COLS_GPIO_init.Speed = GPIO_SPEED_HIGH;
+	HAL_GPIO_Init(GPIOE, &COLS_GPIO_init);
 	 
-	// Set the rows as outputs and initialize struct
-	__HAL_RCC_GPIOE_CLK_ENABLE(); 
-	ROWS_GPIO_init.Pin = GPIO_PIN_11|GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14; 
-	ROWS_GPIO_init.Mode = GPIO_MODE_OUTPUT_PP; // Configure row as output
-	ROWS_GPIO_init.Pull = GPIO_NOPULL; // Pin value is set to low
-	ROWS_GPIO_init.Speed = GPIO_SPEED_LOW; 
-	HAL_GPIO_Init(GPIOE,&ROWS_GPIO_init);
-	HAL_GPIO_WritePin(GPIOE,GPIO_PIN_11|GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14, GPIO_PIN_SET);
+	// ROW = OUTPUT.
+	ROWS_GPIO_init.Pin   = GPIO_PIN_11|GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14;
+	ROWS_GPIO_init.Mode  = GPIO_MODE_OUTPUT_PP;
+	ROWS_GPIO_init.Pull  = GPIO_PULLDOWN;
+	ROWS_GPIO_init.Speed = GPIO_SPEED_HIGH;
+	HAL_GPIO_Init(GPIOE, &ROWS_GPIO_init);
 }
 
-
-// Set rows as inputs and rows as outputs to read the read values on columns
-void setRowsAsInputs(void)
+// THIS FUNCTION SETS THE ROWS AS INPUT.
+void setRowsAsInput(void)
 {
-	// Set the rows as inputs and initialize struct
 	__HAL_RCC_GPIOE_CLK_ENABLE();
-	COLS_GPIO_init.Pin = GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10;
-	COLS_GPIO_init.Mode = GPIO_MODE_OUTPUT_PP; // Column is now configured to output
-	COLS_GPIO_init.Pull = GPIO_NOPULL; // Pin value set to low
-	COLS_GPIO_init.Speed = GPIO_SPEED_LOW;
-	HAL_GPIO_Init(GPIOE,&COLS_GPIO_init); 
-	HAL_GPIO_WritePin(GPIOE,GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10, GPIO_PIN_SET);
 	
-	// Set the columns as outputs and initialize struct
-	__HAL_RCC_GPIOE_CLK_ENABLE(); 
-	ROWS_GPIO_init.Pin = GPIO_PIN_11|GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14; 
-	ROWS_GPIO_init.Mode = GPIO_MODE_INPUT; // Row is now configured to input
-	ROWS_GPIO_init.Pull = GPIO_PULLDOWN; // Pin value set to high
-	ROWS_GPIO_init.Speed = GPIO_SPEED_LOW; 
-	HAL_GPIO_Init(GPIOE,&ROWS_GPIO_init); 
+	// COLUMN = OUTPUT.
+	COLS_GPIO_init.Pin   = GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10;
+	COLS_GPIO_init.Mode  = GPIO_MODE_OUTPUT_PP;
+	COLS_GPIO_init.Pull  = GPIO_PULLDOWN;
+	COLS_GPIO_init.Speed = GPIO_SPEED_HIGH;
+	HAL_GPIO_Init(GPIOE, &COLS_GPIO_init);
+	
+	// ROW = INPUT.
+	ROWS_GPIO_init.Pin   = GPIO_PIN_11|GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14;
+	ROWS_GPIO_init.Mode  = GPIO_MODE_INPUT;
+	ROWS_GPIO_init.Pull  = GPIO_PULLUP;
+	ROWS_GPIO_init.Speed = GPIO_SPEED_HIGH;
+	HAL_GPIO_Init(GPIOE, &ROWS_GPIO_init);
 }
 
-// Function to return the column pressed
-int getPressedColumn(void)
+// THIS FUNCTION RETURNS THE COLUMN NUMBER FOR THE KEY THAT IS PRESSED.
+int getColumnOfKeyPressed(void)
 {
-	// The columns are inputs and are set to high
-	setColsAsInputs();
+	setColumnsAsInput();
 	
-	// Return the value of column pressed (pin of column pressed is going to be low)
-	if(HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_7) == GPIO_PIN_SET)
+	// LEFTMOST TO RIGHTMOST COLUMN: PE7, PE8, PE9, PE10.
+	if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_7) == GPIO_PIN_RESET)
 	{
 		return 0;
 	}
-	else if(HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_8) == GPIO_PIN_SET)
+	else if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_8) == GPIO_PIN_RESET)
 	{
 		return 1;
 	}
-	else if(HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_9) == GPIO_PIN_SET)
+	else if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_9) == GPIO_PIN_RESET)
 	{
 		return 2;
 	}
-	
-	else if(HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_10) == GPIO_PIN_SET)
+	else if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_10) == GPIO_PIN_RESET)
 	{
-		return 2;
+		return -1;
 	}
-	else return -1;
+	else
+	{
+		return -1;
+	}
 }
 
-
-// Function to return the row pressed
-int getPressedRow(void)
+// THIS FUNCTION RETURNS THE ROW NUMBER FOR THE KEY THAT IS PRESSED.
+int getRowOfKeyPressed(void)
 {
-	// The rows are inputs and are set to high
-	setRowsAsInputs();
+	setRowsAsInput();
 	
-	// Return the value of row pressed (pin of row pressed is going to be low)
-	if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_11) == GPIO_PIN_SET)
+	// TOPMOST TO BOTTOMMOST ROW: PE11, PE12, PE13, PE14.
+	if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_11) == GPIO_PIN_RESET)
 	{
 		return 0;
 	}
-	else if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_12) == GPIO_PIN_SET)
+	else if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_12) == GPIO_PIN_RESET)
 	{
 		return 1;
 	}
-	else if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_13) == GPIO_PIN_SET)
+	else if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_13) == GPIO_PIN_RESET)
 	{
 		return 2;
 	}
-	else if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_14) == GPIO_PIN_SET)
+	else if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_14) == GPIO_PIN_RESET)
 	{
 		return 3;
 	}
-	else return -1;
+	else
+	{
+		return -1;
+	}
 }
 
-// Function to return the key pressed
-int getPressedKey(int row, int column)
+// THIS FUNCTION RETURNS A NUMBER REPRESENTING WHICH KEY IS PRESSED (SEE KEYPAD_MAP ABOVE).
+int getKeyPressed(void)
 {
 	int key;
-
+	int column = getColumnOfKeyPressed();
+	int row = getRowOfKeyPressed();
 	
-	if( (row == -1) || (column == -1)){ // If key is not pressed
+	if((row == -1) || (column == -1))
+	{
 		key = -1;
-	}else{
+	}
+	else
+	{
 		key = keypadMap[row][column];
 	}
+	
 	return key;
-}
-
-
-//Function to reset input angle operation
-int resetKey(void)
-{
-	int key = getPressedKey(1,2);
-	if(key == 11)
-	{
-		int counter = 0;
-		int reset_counter = 0;
-		
-		while(counter < 100000)
-		{
-			if(getPressedKey(1,2) == 11)
-			{
-				reset_counter++;
-			}
-			counter++;
-		}
-		
-		if(reset_counter > 50000)
-		{
-			return 1;
-		} 
-		else 
-		{
-			return 0;
-		}
-	} 
-	else 
-	{
-		return 0;
-	}
 }
