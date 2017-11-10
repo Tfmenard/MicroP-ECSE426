@@ -266,7 +266,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 		updatePulse(0, TIM_CHANNEL_4, &htim4);
 		updatePulse(0, TIM_CHANNEL_2, &htim4);
 	}
-	
+
 	// UPDATE THE DIGIT ARRAY TO BE DISPLAYED ON THE 7-SEGMENT DISPLAY.
 	refreshCounter++;
 	if(refreshCounter == 50)
@@ -587,7 +587,7 @@ void fsmEvent(int keyPressed, int keyPressedCounter)
 	
 		// STATE 2: ENTER PITCH ANGLE.
 		case 2:
-			if(keyPressed == 1 || keyPressed == 2 || keyPressed == 3 || keyPressed == 4 || keyPressed == 5 || keyPressed == 6 || keyPressed == 7 || keyPressed == 8 || keyPressed == 9)
+			if(keyPressed == 0 || keyPressed == 1 || keyPressed == 2 || keyPressed == 3 || keyPressed == 4 || keyPressed == 5 || keyPressed == 6 || keyPressed == 7 || keyPressed == 8 || keyPressed == 9)
 			{
 				targetPitchAngle = (targetPitchAngle * 10) + keyPressed;
 				printf("TARGET PITCH ANGLE: %d \n\n", targetPitchAngle);

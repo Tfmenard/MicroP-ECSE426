@@ -42,9 +42,9 @@
 /* USER CODE END 0 */
 
 TIM_HandleTypeDef htim2;
-TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
 
+//THIS VARIABLE IS USED TO KEEP TRACK OF THE INITIAL CONFIGURATION OF THE TIMER IN PWM MODE
 TIM_OC_InitTypeDef TIM4_ConfigHandler;
 
 /* TIM2 init function */
@@ -78,68 +78,6 @@ void MX_TIM2_Init(void)
 
 }
 
-/* TIM3 init function */
-void MX_TIM3_Init(void)
-{
-  TIM_ClockConfigTypeDef sClockSourceConfig;
-  TIM_MasterConfigTypeDef sMasterConfig;
-  TIM_OC_InitTypeDef sConfigOC;
-
-  htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 3125;
-  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 12;
-  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-	
-  HAL_TIM_Base_Init(&htim3);
-
-  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-  HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig);
-
-  HAL_TIM_PWM_Init(&htim3);
-
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig);
-
-  sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 400;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-	
-  //HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1);
-
-  HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_2);
-	
-	//HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_3);
-	
-	//HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_4);
-
-}
-/* TIM4 init function */
-void MX_TIM4_Init(void)
-{
-  TIM_MasterConfigTypeDef sMasterConfig;
-  TIM_OC_InitTypeDef sConfigOC;
-
-  htim4.Instance = TIM4;
-  htim4.Init.Prescaler = 3125;
-  htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim4.Init.Period = 100;
-  htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  HAL_TIM_PWM_Init(&htim4);
-
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig);
-
-  sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 400;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_2);
-
-}
 
 /* TIM4 init function */
 void MX_TIM4_Init_Alt(void)
@@ -203,6 +141,7 @@ void MX_TIM4_Init_Alt(void)
 
   HAL_TIM_MspPostInit(&htim4);
 	
+	//STORING INTIAL CONFIGURATION OF THE PWM CHANNELS
 	TIM4_ConfigHandler = sConfigOC;
 
 }
@@ -241,6 +180,8 @@ void updatePulse(double delta_deg,uint32_t TIM_CHANNEL, TIM_HandleTypeDef * TIM_
 {
 	//Percentage of degree difference to period determines the pulse
 	TIM4_ConfigHandler.Pulse = (delta_deg/360.0)*TIM_HANDLER->Init.Period;
+	
+	//RECONFIGURING THE PWM CHANNEL AND REINITIALIZING IT
 	HAL_TIM_PWM_ConfigChannel(TIM_HANDLER, &TIM4_ConfigHandler,TIM_CHANNEL);		
 	HAL_TIM_PWM_Start(TIM_HANDLER, TIM_CHANNEL);	
 }
