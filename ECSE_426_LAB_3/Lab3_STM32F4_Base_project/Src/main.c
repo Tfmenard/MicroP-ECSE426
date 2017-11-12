@@ -684,7 +684,7 @@ void initializeACC(void)
 	Acc_instance.Axes_Enable				        = LIS3DSH_XYZ_ENABLE;
 	Acc_instance.AA_Filter_BW				        = LIS3DSH_AA_BW_50;
 	Acc_instance.Full_Scale					        = LIS3DSH_FULLSCALE_2;
-	Acc_instance.Power_Mode_Output_DataRate	= LIS3DSH_DATARATE_50;
+	Acc_instance.Power_Mode_Output_DataRate	= LIS3DSH_DATARATE_100;
 	Acc_instance.Self_Test					        = LIS3DSH_SELFTEST_NORMAL;
 	Acc_instance.Continous_Update           = LIS3DSH_ContinousUpdate_Enabled;
 	
