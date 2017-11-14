@@ -34,55 +34,60 @@ osThreadId tid_Thread_LED_3;                              // thread id
 
 // Following is different format of creating your threads. This project is based on the older CMSIS version.
 osThreadDef(Thread_LED_1, osPriorityNormal, 1, 0);
-osThreadDef( Thread_LED_2, osPriorityNormal, 1, 0);
-osThreadDef( Thread_LED_3, osPriorityNormal, 1, 0);
-GPIO_InitTypeDef 				LED_configuration;
+osThreadDef(Thread_LED_2, osPriorityNormal, 1, 0);
+osThreadDef(Thread_LED_3, osPriorityNormal, 1, 0);
+GPIO_InitTypeDef LED_configuration;
 
 /*----------------------------------------------------------------------------
  *      Create the thread within RTOS context
  *---------------------------------------------------------------------------*/
-int start_Thread_LED (void) {
-
+int start_Thread_LED (void)
+{
 	tid_Thread_LED_1 = osThreadCreate(osThread(Thread_LED_1), NULL);
 	tid_Thread_LED_2 = osThreadCreate(osThread(Thread_LED_2), NULL);
 	tid_Thread_LED_3 = osThreadCreate(osThread(Thread_LED_3), NULL);
   //if (!tid_Thread_LED_1) return(-1); 
 	//else if (!tid_Thread_LED_2) return(-1); 
 	//else if (!tid_Thread_LED_3) return(-1); 
- // return(0);
+  // return(0);
 }
 
  /*----------------------------------------------------------------------------
 *      Thread  'LED_Thread': Toggles LED
  *---------------------------------------------------------------------------*/
-	void Thread_LED_1 (void const *argument) {
-		while(1){
-				osDelay(1000);
-				HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_12);
-			}
+void Thread_LED_1 (void const *argument)
+{
+	while(1)
+	{
+		osDelay(1000);
+		//HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_12);
 	}
-	
-	
-	void Thread_LED_2 (void const *argument) {
-		while(1){
-				osDelay(230);
-				HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_14);
-			}
-	}	
-	
-		void Thread_LED_3 (void const *argument) {
-		while(1){
-				osDelay(230);
-				HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_13);
-			}
+}
+
+void Thread_LED_2 (void const *argument)
+{
+	while(1)
+	{
+		osDelay(230);
+		//HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_14);
 	}
+}
+
+void Thread_LED_3 (void const *argument)
+{
+	while(1)
+	{
+		osDelay(230);
+		//HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_13);
+	}
+}
+
 /*----------------------------------------------------------------------------
  *      Initialize the GPIO associated with the LED
  *---------------------------------------------------------------------------*/
-	void initializeLED_IO (void){
-	
+void initializeLED_IO (void)
+{
 	__HAL_RCC_GPIOD_CLK_ENABLE();
-	
 	LED_configuration.Pin		= GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15;
 	LED_configuration.Mode 	= GPIO_MODE_OUTPUT_PP;
 	LED_configuration.Speed	= GPIO_SPEED_FREQ_VERY_HIGH;
