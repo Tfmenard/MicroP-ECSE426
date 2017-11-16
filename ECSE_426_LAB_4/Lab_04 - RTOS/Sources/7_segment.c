@@ -1,8 +1,8 @@
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx.h"
 #include "gpio.h"
-#include <stdio.h>
 #include "7_segment.h"
+#include <stdio.h>
 
 //THIS FUNCTION SELECTS THE PROVIDED NUMBER TO BE LIGHT UP (SELECTS THE RIGHT SEGMENTS OF THE 7-SEGMENT DISPLAY).
 void displayNumberOn7Segment(int number) 

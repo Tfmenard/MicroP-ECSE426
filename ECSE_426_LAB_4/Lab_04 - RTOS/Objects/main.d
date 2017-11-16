@@ -40,3 +40,4 @@
 .\objects\main.o: .\Headers\7_segment.h
 .\objects\main.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\math.h
 .\objects\main.o: .\Headers\main.h
+.\objects\main.o: .\Headers\global_variables.h

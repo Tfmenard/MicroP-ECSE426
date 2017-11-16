@@ -492,6 +492,11 @@
               <FileType>1</FileType>
               <FilePath>.\Sources\7_segment.c</FilePath>
             </File>
+            <File>
+              <FileName>fput_debug.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Sources\fput_debug.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -998,6 +1003,11 @@
               <FileType>1</FileType>
               <FilePath>.\Sources\7_segment.c</FilePath>
             </File>
+            <File>
+              <FileName>fput_debug.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Sources\fput_debug.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -1503,6 +1513,11 @@
               <FileName>7_segment.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\Sources\7_segment.c</FilePath>
+            </File>
+            <File>
+              <FileName>fput_debug.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Sources\fput_debug.c</FilePath>
             </File>
           </Files>
         </Group>

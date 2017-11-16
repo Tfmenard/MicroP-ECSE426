@@ -110,6 +110,7 @@ void displayNumberOn7Segment(int number);
 void selectTrgt7SegmentDisplayDigit(int trgtDigit);
 void displayNumberOnTrgtDigit(int number, int trgtDigit);
 void fsmEvent(int keyPressed, int keyPressedCounter);
+void initializeACC(void);
 
 void _Error_Handler(char *, int);
 

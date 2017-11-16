@@ -32,3 +32,11 @@
 .\objects\thread_led.o: C:\Keil_v5\ARM\PACK\Keil\STM32F4xx_DFP\2.7.0\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_spi.h
 .\objects\thread_led.o: C:\Keil_v5\ARM\PACK\Keil\STM32F4xx_DFP\2.7.0\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_tim.h
 .\objects\thread_led.o: C:\Keil_v5\ARM\PACK\Keil\STM32F4xx_DFP\2.7.0\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_tim_ex.h
+.\objects\thread_led.o: .\Headers\keypad4x4.h
+.\objects\thread_led.o: .\Headers\gpio.h
+.\objects\thread_led.o: .\Headers\7_segment.h
+.\objects\thread_led.o: .\Headers\fsm.h
+.\objects\thread_led.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\math.h
+.\objects\thread_led.o: .\Headers\tim.h
+.\objects\thread_led.o: .\Accelerometer\inc\lis3dsh.h
+.\objects\thread_led.o: .\Headers\global_variables.h

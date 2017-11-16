@@ -43,6 +43,7 @@
 /* External variables --------------------------------------------------------*/
 extern int SysTickCount;
 extern TIM_HandleTypeDef htim2;
+extern TIM_HandleTypeDef htim3;
 /******************************************************************************/
 /*            Cortex-M4 Processor Interruption and Exception Handlers         */ 
 /******************************************************************************/
@@ -79,6 +80,10 @@ void EXTI0_IRQHandler(void)
 void TIM2_IRQHandler(void)
 {
 	HAL_TIM_IRQHandler(&htim2);
+}
+void TIM3_IRQHandler(void)
+{
+	HAL_TIM_IRQHandler(&htim3);
 }
 /* USER CODE END 1 */
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
