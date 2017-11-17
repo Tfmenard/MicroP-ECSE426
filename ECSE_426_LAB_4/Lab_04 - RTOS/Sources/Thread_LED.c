@@ -19,6 +19,18 @@
 #include "global_variables.h"
 #include "Thread_LED.h"
 
+// ********************************************************* TEST BEGIN
+osMutexId stdio_mutex;
+osMutexDef(stdio_mutex);
+
+void notify(const char* name, int state)
+{
+	osMutexWait(stdio_mutex, osWaitForever);
+	//printf("%s: %d\n\r", name, state);
+	osMutexRelease(stdio_mutex);
+}
+// ********************************************************* TEST END
+
 osThreadId tid_Thread_1;
 osThreadId tid_Thread_2;
 
@@ -36,12 +48,14 @@ int start_Thread_LED (void)
 	tid_Thread_2 = osThreadCreate(osThread(Thread_2), NULL);
   //if (!tid_Thread_LED_1) return(-1); 
 	//else if (!tid_Thread_LED_2) return(-1);  
+	stdio_mutex = osMutexCreate(osMutex(stdio_mutex));
   return(0);
 }
 
 int start_Thread_2 (void)
 {
 	tid_Thread_2 = osThreadCreate(osThread(Thread_2), NULL); 
+	osMutexRelease(stdio_mutex);
   return(0);
 }
 
@@ -74,6 +88,7 @@ void Thread_1 (void const *argument)
 				keyPressedCounter = 0;
 			}
 		}
+		notify("Thread 1", 0);
 	}
 }
 
@@ -224,6 +239,7 @@ void Thread_2 (void const *argument)
 				refreshCounter = 0;
 			}
 		}
+		notify("Thread 2", 0);
 	}
 }
 
@@ -243,4 +259,3 @@ void initializeLED_IO (void)
  *      
  *---------------------------------------------------------------------------*/
 
-void notify(const
