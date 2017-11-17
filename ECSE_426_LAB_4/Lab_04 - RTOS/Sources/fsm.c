@@ -1,10 +1,16 @@
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx.h"
+#include "cmsis_os.h"
 #include "gpio.h"
 #include "fsm.h"
 #include "tim.h"
 #include "global_variables.h"
+#include "Thread_LED.h"
 #include <stdio.h>
+
+extern osThreadId tid_Thread_2;
+//extern void Thread_2 (void const *argument);
+//osThreadDef(Thread_2, osPriorityNormal, 1, 0);
 
 // THIS FUNCTION HANDLES THE FINITE STATE MACHINE.
 void fsmEvent(int keyPressed, int keyPressedCounter)
@@ -37,12 +43,8 @@ void fsmEvent(int keyPressed, int keyPressedCounter)
 			{
 				FSM_state = 4;
 				wake_up_state = 1;
-				
-				//HAL_TIM_Base_MspDeInit(&htim2);
-				//HAL_TIM_Base_MspDeInit(&htim4);
-				//HAL_TIM_PWM_MspDeInit(&htim4);
-				//deInit_External_Trigger();
-				
+				deInit_Power_Consuming_Timers();	
+				osThreadTerminate(tid_Thread_2);
 				printf("SLEEP MODE. GOOD NIGHT! \n\n");
 			}
 			else if(keyPressed == 11 && keyPressedCounter > 285)
@@ -89,6 +91,8 @@ void fsmEvent(int keyPressed, int keyPressedCounter)
 			{
 				FSM_state = 4;
 				wake_up_state = 2;
+				deInit_Power_Consuming_Timers();
+				osThreadTerminate(tid_Thread_2);
 				printf("SLEEP MODE. GOOD NIGHT! \n\n");
 			}
 			else if(keyPressed == 11 && keyPressedCounter > 285)
@@ -111,20 +115,35 @@ void fsmEvent(int keyPressed, int keyPressedCounter)
 		
 		// STATE 3: OPERATION MODE.
 		case 3:
-			if(keyPressed == 1)
+			if(keyPressed == 10)
 			{
-				isRollAngleDisplayed = 1;
-				printf("DISPLAY ROLL ANGLE! \n\n");
-			}
-			else if(keyPressed == 2)
-			{
-				isRollAngleDisplayed = 0;
-				printf("DISPLAY PITCH ANGLE! \n\n");
+				if(infoDisplayed == 1)
+				{
+					infoDisplayed = 2;
+					printf("DISPLAY MEASURED PITCH ANGLE! \n\n");
+				}
+				else if(infoDisplayed == 2)
+				{
+					infoDisplayed = 3;
+					printf("DISPLAY TARGET ROLL ANGLE! \n\n");
+				}
+				else if(infoDisplayed == 3)
+				{
+					infoDisplayed = 4;
+					printf("DISPLAY TARGET PITCH ANGLE! \n\n");
+				}
+				else if(infoDisplayed == 4)
+				{
+					infoDisplayed = 1;
+					printf("DISPLAY MEASURED ROLL ANGLE! \n\n");
+				}
 			}
 			else if(keyPressed == 11 && keyPressedCounter > 428)
 			{
 				FSM_state = 4;
 				wake_up_state = 3;
+				deInit_Power_Consuming_Timers();
+				osThreadTerminate(tid_Thread_2);
 				printf("SLEEP MODE. GOOD NIGHT! \n\n");
 			}
 			else if(keyPressed == 11 && keyPressedCounter > 285)
@@ -145,6 +164,8 @@ void fsmEvent(int keyPressed, int keyPressedCounter)
 			if(keyPressed == 10 && keyPressedCounter > 428)
 			{
 				FSM_state = wake_up_state;
+				init_Power_Consuming_Timers();
+				start_Thread_2();
 				printf("WAKING UP. HELLO! \n\n");
 			}
 			else

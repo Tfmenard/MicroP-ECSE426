@@ -497,6 +497,16 @@
               <FileType>1</FileType>
               <FilePath>.\Sources\fput_debug.c</FilePath>
             </File>
+            <File>
+              <FileName>fsm.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Sources\fsm.c</FilePath>
+            </File>
+            <File>
+              <FileName>global_variables.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Sources\global_variables.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -1008,6 +1018,16 @@
               <FileType>1</FileType>
               <FilePath>.\Sources\fput_debug.c</FilePath>
             </File>
+            <File>
+              <FileName>fsm.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Sources\fsm.c</FilePath>
+            </File>
+            <File>
+              <FileName>global_variables.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Sources\global_variables.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -1518,6 +1538,16 @@
               <FileName>fput_debug.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\Sources\fput_debug.c</FilePath>
+            </File>
+            <File>
+              <FileName>fsm.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Sources\fsm.c</FilePath>
+            </File>
+            <File>
+              <FileName>global_variables.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Sources\global_variables.c</FilePath>
             </File>
           </Files>
         </Group>

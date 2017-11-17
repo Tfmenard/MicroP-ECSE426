@@ -58,6 +58,9 @@ void MX_TIM4_Init(void);
 void MX_TIM4_Init_Alt(void);
 	 
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
+void init_Power_Consuming_Timers(void);
+void deInit_Power_Consuming_Timers(void);
+void Init_External_Trigger(void);
 void deInit_External_Trigger(void);
 
 /* USER CODE BEGIN Prototypes */

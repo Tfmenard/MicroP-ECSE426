@@ -92,10 +92,11 @@ int main (void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
 	MX_TIM2_Init();
-	//MX_TIM3_Init();
+	MX_TIM3_Init();
 	MX_TIM4_Init_Alt();
 	
 	HAL_TIM_Base_Start_IT(&htim2);
+	HAL_TIM_Base_Start_IT(&htim3);
 	HAL_TIM_Base_Start(&htim4); 
 	
 	// Green LED
@@ -171,7 +172,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	// THE INTERRUPT OF TIMER 2 GETS CALLED EVERY 7 MS.
   if(htim == &htim2)
   {
-		flagForKeypad = 1;
 		// REFRESH THE SEGMENT DISPLAY AND UPDATE THE DIGIT COUNTER.
 		if(FSM_state == 4)
 		{
@@ -183,10 +183,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 			digitCounter = (digitCounter + 1) % 3;
 		}
 	}
-//	else if(htim == &htim3)
-//	{
-//		flagForKeypad = 1;
-//	}
+	else if(htim == &htim3)
+	{
+		flagForKeypad = 1;
+	}
 }
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)

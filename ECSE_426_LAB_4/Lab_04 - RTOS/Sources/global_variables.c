@@ -1,6 +1,7 @@
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx.h"
 #include "gpio.h"
+#include "lis3dsh.h"
 #include "global_variables.h"
 #include <stdio.h>
 
@@ -86,5 +87,9 @@ int FSM_state = 1;
 // THIS VARIABLE KEEPS TRACK OF WHICH STATE TO GO BACK TO AFTER WAKING UP FROM SLEEP MODE.
 int wake_up_state = 1;
 
-// THIS BOOLEAN VARIABLE KEEPS TRACK OF WHETHER THE ROLL OR PITCH ANGLE SHOULD BE DISPLAYED IN OPERATION MODE.
-int isRollAngleDisplayed = 1;
+// THIS VARIABLE KEEPS TRACK OF WHAT SHOULD BE DISPLAYED IN OPERATION MODE.
+// 1: MEASURED ROLL ANGLE.
+// 2: MEASURED PITCH ANGLE.
+// 3: TARGET ROLL ANGLE.
+// 4: TARGET PITCH ANGLE.
+int infoDisplayed = 1;

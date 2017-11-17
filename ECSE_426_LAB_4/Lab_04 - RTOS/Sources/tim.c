@@ -34,9 +34,10 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "tim.h"
-
+#include "main.h"
 #include "gpio.h"
-
+#include "lis3dsh.h"
+#include "global_variables.h"
 /* USER CODE BEGIN 0 */
 
 /* USER CODE END 0 */
@@ -47,6 +48,7 @@ TIM_HandleTypeDef htim4;
 
 //THIS VARIABLE IS USED TO KEEP TRACK OF THE INITIAL CONFIGURATION OF THE TIMER IN PWM MODE
 TIM_OC_InitTypeDef TIM4_ConfigHandler;
+extern LIS3DSH_DRYInterruptConfigTypeDef interruptCfg;
 
 /* TIM2 init function */
 void MX_TIM2_Init(void)
@@ -314,12 +316,13 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* htim_base)
 
   /* USER CODE END TIM3_MspDeInit 0 */
     /* Peripheral clock disable */
-    __TIM3_CLK_DISABLE();
+    __TIM2_CLK_DISABLE();
   
 		__HAL_RCC_TIM2_CLK_DISABLE();
 
     /* TIM2 interrupt Deinit */
     HAL_NVIC_DisableIRQ(TIM2_IRQn);
+		
 
   }
 	else if(htim_base->Instance==TIM3)
@@ -372,9 +375,8 @@ void HAL_TIM_PWM_MspDeInit(TIM_HandleTypeDef* htim_pwm)
     PD15     ------> TIM4_CH4
     PB7     ------> TIM4_CH2 
     */
-    HAL_GPIO_DeInit(GPIOD, GPIO_PIN_14|GPIO_PIN_15);
+    HAL_GPIO_DeInit(GPIOD, GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15);
 
-    HAL_GPIO_DeInit(GPIOB, GPIO_PIN_7);
 
   }
   /* USER CODE BEGIN TIM4_MspDeInit 1 */
@@ -382,11 +384,70 @@ void HAL_TIM_PWM_MspDeInit(TIM_HandleTypeDef* htim_pwm)
   /* USER CODE END TIM4_MspDeInit 1 */
 } 
 
+void init_External_Trigger(void)
+{
+    /* ACC Interrupt Init */
+  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+	HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
+}
+
 void deInit_External_Trigger(void)
 {
     /* ACC Interrupt Deinit */
   HAL_NVIC_DisableIRQ(EXTI0_IRQn);
+	HAL_GPIO_DeInit(GPIOE, GPIO_PIN_0);
+	interruptCfg.Dataready_Interrupt = LIS3DSH_DATA_READY_INTERRUPT_ENABLED;
+	LIS3DSH_DataReadyInterruptConfig(&interruptCfg);
 }
+
+void init_Power_Consuming_Timers(void)
+{
+	
+	init_External_Trigger();
+	initializeACC	();
+	HAL_Init();
+	//INITIALIZE TIMER AND GPIOS
+	MX_GPIO_Init();
+	MX_TIM2_Init();
+	MX_TIM4_Init_Alt();
+	
+	//START TIMERS
+	HAL_TIM_Base_Start_IT(&htim2);
+	HAL_TIM_Base_Start(&htim4); 
+	
+	//INITIALIZE PWM CHANNELS
+	
+	// Green LED
+	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
+	// Orange LED
+	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
+	// Red LED
+	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
+	// Blue LED
+	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4);
+}
+
+void deInit_Power_Consuming_Timers(void)
+{
+	//HAL_TIM_Base_MspDeInit(&htim2);
+	HAL_GPIO_DeInit(GPIOD, GPIO_PIN_0| GPIO_PIN_1| GPIO_PIN_2| GPIO_PIN_3| GPIO_PIN_4|GPIO_PIN_5
+												|GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_8| GPIO_PIN_9| GPIO_PIN_10|GPIO_PIN_11);
+	
+	//HAL_TIM_Base_MspDeInit(&htim4);
+	HAL_TIM_Base_Stop_IT(&htim2);
+
+	//HAL_TIM_PWM_MspDeInit(&htim4);
+	HAL_TIM_PWM_Stop(&htim4, TIM_CHANNEL_1);
+	HAL_TIM_PWM_Stop(&htim4, TIM_CHANNEL_2);
+	HAL_TIM_PWM_Stop(&htim4, TIM_CHANNEL_3);
+	HAL_TIM_PWM_Stop(&htim4, TIM_CHANNEL_4);
+	HAL_TIM_Base_Stop(&htim4);
+	interruptCfg.Dataready_Interrupt = LIS3DSH_DATA_READY_INTERRUPT_DISABLED;
+	LIS3DSH_DataReadyInterruptConfig(&interruptCfg);
+	deInit_External_Trigger();
+}
+
+
 /* USER CODE BEGIN 1 */
 
 /* USER CODE END 1 */

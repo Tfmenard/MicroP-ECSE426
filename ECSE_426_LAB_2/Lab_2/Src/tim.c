@@ -280,6 +280,7 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* tim_baseHandle)
 
   /* USER CODE END TIM2_MspDeInit 0 */
     /* Peripheral clock disable */
+		 __TIM2_CLK_DISABLE();
     __HAL_RCC_TIM2_CLK_DISABLE();
 
     /* TIM2 interrupt Deinit */
@@ -294,7 +295,9 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* tim_baseHandle)
 
   /* USER CODE END TIM3_MspDeInit 0 */
     /* Peripheral clock disable */
+		__TIM3_CLK_DISABLE();
     __HAL_RCC_TIM3_CLK_DISABLE();
+		 HAL_NVIC_DisableIRQ(TIM3_IRQn);
   /* USER CODE BEGIN TIM3_MspDeInit 1 */
 
   /* USER CODE END TIM3_MspDeInit 1 */

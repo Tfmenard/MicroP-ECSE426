@@ -17,32 +17,14 @@
 #include "tim.h"
 #include "lis3dsh.h"
 #include "global_variables.h"
+#include "Thread_LED.h"
 
-void Thread_LED_1 (void const *argument);                 // thread function
-void Thread_LED_2 (void const *argument);                 // thread function
-void Thread_LED_3 (void const *argument);                 // thread function
-osThreadId tid_Thread_LED_1;                              // thread id
-osThreadId tid_Thread_LED_2;                              // thread id
-osThreadId tid_Thread_LED_3;                              // thread 
-
-/*		**** depending on the version of the CMSIS library, you may need to make your threads in different way:   *******
-
-	osThreadDef(Thread_1,Thread_LED, osPriorityNormal, osPriorityNormal, 128);
-	osThreadDef(Thread_2, Thread_LED_2, osPriorityNormal, osPriorityNormal, 128);
-	osThreadDef(Thread_3, Thread_LED_3, osPriorityNormal, osPriorityNormal, 128);
- 
-	tid_Thread_LED_1 = osThreadCreate(osThread(Thread_1), NULL);
-	tid_Thread_LED_2 = osThreadCreate(osThread(Thread_2), NULL);
-	tid_Thread_LED_3 = osThreadCreate(osThread(Thread_3), NULL);
-
-	This is a style when you create a project with CubMx as it uses the newest version
-
-*/
+osThreadId tid_Thread_1;
+osThreadId tid_Thread_2;
 
 // Following is different format of creating your threads. This project is based on the older CMSIS version.
-osThreadDef(Thread_LED_1, osPriorityNormal, 1, 0);
-osThreadDef(Thread_LED_2, osPriorityNormal, 1, 0);
-osThreadDef(Thread_LED_3, osPriorityNormal, 1, 0);
+osThreadDef(Thread_1, osPriorityNormal, 1, 0);
+osThreadDef(Thread_2, osPriorityNormal, 1, 0);
 GPIO_InitTypeDef LED_configuration;
 
 /*----------------------------------------------------------------------------
@@ -50,19 +32,23 @@ GPIO_InitTypeDef LED_configuration;
  *---------------------------------------------------------------------------*/
 int start_Thread_LED (void)
 {
-	tid_Thread_LED_1 = osThreadCreate(osThread(Thread_LED_1), NULL);
-	tid_Thread_LED_2 = osThreadCreate(osThread(Thread_LED_2), NULL);
-	tid_Thread_LED_3 = osThreadCreate(osThread(Thread_LED_3), NULL);
+	tid_Thread_1 = osThreadCreate(osThread(Thread_1), NULL);
+	tid_Thread_2 = osThreadCreate(osThread(Thread_2), NULL);
   //if (!tid_Thread_LED_1) return(-1); 
-	//else if (!tid_Thread_LED_2) return(-1); 
-	//else if (!tid_Thread_LED_3) return(-1); 
+	//else if (!tid_Thread_LED_2) return(-1);  
+  return(0);
+}
+
+int start_Thread_2 (void)
+{
+	tid_Thread_2 = osThreadCreate(osThread(Thread_2), NULL); 
   return(0);
 }
 
  /*----------------------------------------------------------------------------
-*      Thread  'LED_Thread': Toggles LED
+*      Threads
  *---------------------------------------------------------------------------*/
-void Thread_LED_1 (void const *argument)
+void Thread_1 (void const *argument)
 {
 	while(1)
 	{
@@ -91,7 +77,7 @@ void Thread_LED_1 (void const *argument)
 	}
 }
 
-void Thread_LED_2 (void const *argument)
+void Thread_2 (void const *argument)
 {
 	while(1)
 	{
@@ -205,17 +191,29 @@ void Thread_LED_2 (void const *argument)
 				
 					// STATE 3: OPERATION MODE.
 					case 3:
-						if(isRollAngleDisplayed == 1)
+						if(infoDisplayed == 1)
 						{
 							digitArray[0] = ((int)(rollAngle / 100)) % 10;
 							digitArray[1] = ((int)(rollAngle / 10))  % 10;
 							digitArray[2] = ((int)(rollAngle / 1))   % 10;
 						}
-						else
+						else if(infoDisplayed == 2)
 						{
 							digitArray[0] = ((int)(pitchAngle / 100)) % 10;
 							digitArray[1] = ((int)(pitchAngle / 10))  % 10;
 							digitArray[2] = ((int)(pitchAngle / 1))   % 10;
+						}
+						else if(infoDisplayed == 3)
+						{
+							digitArray[0] = ((int)(targetRollAngle / 100)) % 10;
+							digitArray[1] = ((int)(targetRollAngle / 10))  % 10;
+							digitArray[2] = ((int)(targetRollAngle / 1))   % 10;
+						}
+						else if(infoDisplayed == 4)
+						{
+							digitArray[0] = ((int)(targetPitchAngle / 100)) % 10;
+							digitArray[1] = ((int)(targetPitchAngle / 10))  % 10;
+							digitArray[2] = ((int)(targetPitchAngle / 1))   % 10;
 						}
 						break;
 				
@@ -226,15 +224,6 @@ void Thread_LED_2 (void const *argument)
 				refreshCounter = 0;
 			}
 		}
-	}
-}
-
-void Thread_LED_3 (void const *argument)
-{
-	while(1)
-	{
-		osDelay(100);
-		//HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_13);
 	}
 }
 
@@ -253,3 +242,5 @@ void initializeLED_IO (void)
 /*----------------------------------------------------------------------------
  *      
  *---------------------------------------------------------------------------*/
+
+void notify(const
