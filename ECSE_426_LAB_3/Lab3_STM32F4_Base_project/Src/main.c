@@ -42,6 +42,7 @@
 #include <stm32f4xx_hal_rcc.h>
 #include <stm32f4xx_hal_tim.h>
 
+#include "stm32f4xx_hal_uart.h"
 
 LIS3DSH_InitTypeDef 		Acc_instance;
 LIS3DSH_DRYInterruptConfigTypeDef interruptCfg;
@@ -134,6 +135,9 @@ void SystemClock_Config(void);
 void initializeACC			(void);
 int SysTickCount;
 
+UART_HandleTypeDef huart2;
+uint8_t bufftx[10] = "Hello \n\r";
+
 int main(void)
 {
 	interruptCfg.Dataready_Interrupt = LIS3DSH_DATA_READY_INTERRUPT_ENABLED;
@@ -155,6 +159,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+	
 	MX_TIM2_Init();
 	MX_TIM4_Init_Alt();
 	
@@ -169,11 +174,32 @@ int main(void)
 	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
 	// Blue LED
 	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4);
+	
+	huart2.Instance = USART2;
+	huart2.Init.BaudRate = 9600;
+	huart2.Init.WordLength = UART_WORDLENGTH_8B;
+	huart2.Init.StopBits = UART_STOPBITS_1;
+	huart2.Init.Parity = UART_PARITY_NONE;
+	huart2.Init.Mode = UART_MODE_TX_RX;
+	huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+	huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+	HAL_UART_Init(&huart2);
+  
+	
 
 	printf("ENTER ROLL ANGLE! \n\n");
+		if( HAL_UART_Transmit(&huart2, bufftx, 10, 100) != HAL_OK)
+	{
+		printf("NOT OK!");
+		HAL_Delay(500);
+	}
+	else
+	{
+		printf("Transmit successful");
+	}
   while(1)
   {
-	
+
   }
 }
 

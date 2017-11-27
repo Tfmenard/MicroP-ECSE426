@@ -29,5 +29,6 @@ lab3 configuration/\keypad4x4.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_h
 lab3 configuration/\keypad4x4.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_spi.h
 lab3 configuration/\keypad4x4.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h
 lab3 configuration/\keypad4x4.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h
+lab3 configuration/\keypad4x4.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h
 lab3 configuration/\keypad4x4.o: ../Inc/gpio.h
 lab3 configuration/\keypad4x4.o: ../Inc/keypad4x4.h
