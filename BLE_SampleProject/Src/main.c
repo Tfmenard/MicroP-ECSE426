@@ -181,16 +181,23 @@ int main(void)
 	huart2.Init.OverSampling = UART_OVERSAMPLING_16;
 	HAL_UART_Init(&huart2);
   
-	__HAL_UART_CLEAR_OREFLAG(&huart2);
+	//__HAL_UART_ENABLE_IT(&huart2, UART_IT_TC);
+	__HAL_UART_ENABLE_IT(&huart2, UART_IT_RXNE);
+	//__HAL_UART_CLEAR_OREFLAG(&huart2);
+	
 	HAL_NVIC_EnableIRQ(USART2_IRQn );
 	HAL_NVIC_SetPriority(USART2_IRQn , 0, 0);
 	
-	HAL_NVIC_EnableIRQ(EXTI0_IRQn);
-	HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
+	
+	
 	
 	if (HAL_UART_Receive_IT(&huart2, (uint8_t *)RxBuffer, RXBUFFERSIZE) != HAL_OK) 
 	{
         printf("Error setting Recevive UART Handler");
+	}
+	else
+	{
+		printf("Receive successful");
 	}
 	//while(1)
 	//{
@@ -348,11 +355,12 @@ int main(void)
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
+		BSP_LED_Toggle(LED2);
 		if (huart==&huart2) {
 			 // do something with rx_data
 
 			
-
+				
 			 HAL_UART_Receive_IT(&huart2, (uint8_t *)RxBuffer, 1);   // trigger the next read
 		}
 

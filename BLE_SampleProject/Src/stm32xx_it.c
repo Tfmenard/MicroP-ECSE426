@@ -164,6 +164,11 @@ void USART2_IRQHandler(void)
 {
 	HAL_UART_IRQHandler(&huart2);
 }
+
+void UART2_IRQHandler(void)
+{
+	HAL_UART_IRQHandler(&huart2);
+}
 /******************************************************************************/
 /*                 STM32L0xx Peripherals Interrupt Handlers                   */
 /*  Add here the Interrupt Handler for the used peripheral(s) (PPP), for the  */

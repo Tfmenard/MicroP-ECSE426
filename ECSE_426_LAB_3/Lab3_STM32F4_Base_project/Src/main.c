@@ -185,10 +185,16 @@ int main(void)
 	huart2.Init.OverSampling = UART_OVERSAMPLING_16;
 	HAL_UART_Init(&huart2);
   
+	__HAL_UART_ENABLE_IT(&huart2, UART_IT_TC);
 	
+	HAL_NVIC_EnableIRQ(USART2_IRQn);
+	HAL_NVIC_SetPriority(USART2_IRQn, 0, 0);
 
 	printf("ENTER ROLL ANGLE! \n\n");
-		if( HAL_UART_Transmit(&huart2, bufftx, 10, 100) != HAL_OK)
+	
+  while(1)
+  {
+	if( HAL_UART_Transmit(&huart2, bufftx, 10, 100) != HAL_OK)
 	{
 		printf("NOT OK!");
 		HAL_Delay(500);
@@ -196,11 +202,14 @@ int main(void)
 	else
 	{
 		printf("Transmit successful");
+		HAL_Delay(500);
 	}
-  while(1)
-  {
-
   }
+}
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+{
+	updatePulse(0, TIM_CHANNEL_3, &htim4);
 }
 
 /** System Clock Configuration
