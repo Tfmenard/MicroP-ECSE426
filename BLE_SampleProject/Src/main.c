@@ -184,7 +184,7 @@ int main(void)
 	//__HAL_UART_ENABLE_IT(&huart2, UART_IT_TC);
 	__HAL_UART_ENABLE_IT(&huart2, UART_IT_RXNE);
 	//__HAL_UART_CLEAR_OREFLAG(&huart2);
-	
+	BSP_LED_Init(LED2); 
 	HAL_NVIC_EnableIRQ(USART2_IRQn );
 	HAL_NVIC_SetPriority(USART2_IRQn , 0, 0);
 	
@@ -361,7 +361,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
 			
 				
-			 HAL_UART_Receive_IT(&huart2, (uint8_t *)RxBuffer, 1);   // trigger the next read
+			 //HAL_UART_Receive_IT(&huart2, (uint8_t *)RxBuffer, 1);   // trigger the next read
+			//UpdateRxBuffer
 		}
 
 }
