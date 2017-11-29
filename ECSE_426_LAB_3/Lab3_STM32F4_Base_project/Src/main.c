@@ -136,7 +136,12 @@ void initializeACC			(void);
 int SysTickCount;
 
 UART_HandleTypeDef huart2;
-uint8_t bufftx[10] = "Hello \n\r";
+
+//Will
+#define bufftxSize 1
+uint8_t bufftx[bufftxSize] = {1};
+//Will
+uint8_t toggle = 0;
 
 int main(void)
 {
@@ -144,8 +149,8 @@ int main(void)
 	interruptCfg.Interrupt_signal = LIS3DSH_ACTIVE_HIGH_INTERRUPT_SIGNAL;
 	interruptCfg.Interrupt_type = LIS3DSH_INTERRUPT_REQUEST_PULSED;
 	
-	HAL_NVIC_EnableIRQ(EXTI0_IRQn);
-	HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
+	//HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+	//HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
 
 	initializeACC	();
 	HAL_SPI_MspInit(hspi);
@@ -160,10 +165,10 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
 	
-	MX_TIM2_Init();
+	//MX_TIM2_Init();
 	MX_TIM4_Init_Alt();
 	
-	HAL_TIM_Base_Start_IT(&htim2);
+	//HAL_TIM_Base_Start_IT(&htim2);
 	HAL_TIM_Base_Start(&htim4); 
 	
 	// Green LED
@@ -175,6 +180,7 @@ int main(void)
 	// Blue LED
 	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4);
 	
+	//Will
 	huart2.Instance = USART2;
 	huart2.Init.BaudRate = 9600;
 	huart2.Init.WordLength = UART_WORDLENGTH_8B;
@@ -189,28 +195,57 @@ int main(void)
 	
 	HAL_NVIC_EnableIRQ(USART2_IRQn);
 	HAL_NVIC_SetPriority(USART2_IRQn, 0, 0);
+	//Will
 
 	printf("ENTER ROLL ANGLE! \n\n");
 	
+	//Will
   while(1)
   {
-	if( HAL_UART_Transmit(&huart2, bufftx, 10, 100) != HAL_OK)
+		if( HAL_UART_Transmit_IT(&huart2, bufftx, bufftxSize) != HAL_OK)
+		{
+			printf("NOT OK!");
+			HAL_Delay(500);
+		}
+		else
+		{
+			printf("Transmit successful \n");
+			HAL_Delay(500);
+			bufftx[0]++;
+			bufftx[0] = (bufftx[0]%100);
+			printf("TxValue: %d", bufftx[0]);
+		}
+  }
+	//Will
+}
+
+//Will
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+{
+	if(toggle)
 	{
-		printf("NOT OK!");
-		HAL_Delay(500);
+		toggle = 0;
 	}
 	else
 	{
-		printf("Transmit successful");
-		HAL_Delay(500);
+		toggle = 1;
 	}
-  }
+	updatePulse(toggle*100, TIM_CHANNEL_3, &htim4);
+//	if( HAL_UART_Transmit(&huart2, bufftx, bufftxSize, 100) != HAL_OK)
+//		{
+//			printf("NOT OK!");
+//			HAL_Delay(500);
+//		}
+//	else
+//	{
+//		printf("Transmit successful \n");
+//		HAL_Delay(500);
+//		bufftx[0]++;
+//		printf("TxValue: %d", bufftx[0]);
+//	}
+	
 }
-
-void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
-{
-	updatePulse(0, TIM_CHANNEL_3, &htim4);
-}
+//Will
 
 /** System Clock Configuration
 	The clock source is configured as external at 168 MHz HCLK

@@ -163,6 +163,16 @@ void PUSH_BUTTON_EXTI_IRQHandler(void)
 void USART2_IRQHandler(void)
 {
 	HAL_UART_IRQHandler(&huart2);
+	int pulse = 0;
+	while((pulse++)%10)
+	{
+		BSP_LED_Toggle(LED2);
+	}
+}
+
+void USART1_IRQHandler(void)
+{
+	HAL_UART_IRQHandler(&huart2);
 }
 
 void UART2_IRQHandler(void)

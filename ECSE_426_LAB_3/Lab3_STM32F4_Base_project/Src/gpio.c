@@ -208,6 +208,8 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_LOW;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 	
+	
+	//Will
 	__HAL_RCC_GPIOA_CLK_ENABLE();
 	__USART2_CLK_ENABLE();
 		
@@ -217,7 +219,7 @@ void MX_GPIO_Init(void)
 	GPIO_InitStruct.Speed = GPIO_SPEED_LOW;
 	GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
 	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
+	//Will
 }
 
 /* USER CODE BEGIN 2 */

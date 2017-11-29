@@ -57,6 +57,7 @@ volatile uint8_t set_connectable = 1;
 volatile uint16_t connection_handle = 0;
 volatile uint8_t notification_enabled = FALSE;
 volatile AxesRaw_t axes_data = {0, 0, 0};
+extern uint8_t RxBuffer[1];
 uint16_t sampleServHandle, TXCharHandle, RXCharHandle;
 uint16_t accServHandle, freeFallCharHandle, accCharHandle;
 uint16_t envSensServHandle, tempCharHandle, pressCharHandle, humidityCharHandle;
@@ -380,10 +381,14 @@ tBleStatus Press_Update(int32_t press)
  */
 tBleStatus Humidity_Update(uint16_t humidity)
 {  
-  tBleStatus ret;
+  tBleStatus ret;   
+  uint8_t buff[6];
+	uint8_t rxval = RxBuffer[0];
+	uint16_t rx = RxBuffer[0] + 650;
+    
   
   ret = aci_gatt_update_char_value(envSensServHandle, humidityCharHandle, 0, 2,
-                                   (uint8_t*)&humidity);
+                                   (uint8_t*)&rx);
   
   if (ret != BLE_STATUS_SUCCESS){
     PRINTF("Error while updating TEMP characteristic.\n") ;

@@ -85,7 +85,8 @@ extern AxesRaw_t axes_data;
 uint8_t bnrg_expansion_board = IDB04A1; /* at startup, suppose the X-NUCLEO-IDB04A1 is used */
 UART_HandleTypeDef huart2;
 uint8_t bufftx[10] = "Hello \n\r";
-#define RXBUFFERSIZE    10
+#define RXBUFFERSIZE    1
+//uint8_t RxBuffer[RXBUFFERSIZE];
 uint8_t RxBuffer[RXBUFFERSIZE];
 /**
  * @}
@@ -171,22 +172,21 @@ int main(void)
   HAL_Init();
 	MX_GPIO_Init();
 	//Init_UART();
-	huart2.Instance = USART2;
+	huart2.Instance = USART1;
 	huart2.Init.BaudRate = 9600;
 	huart2.Init.WordLength = UART_WORDLENGTH_8B;
 	huart2.Init.StopBits = UART_STOPBITS_1;
 	huart2.Init.Parity = UART_PARITY_NONE;
-	huart2.Init.Mode = UART_MODE_TX_RX;
+	huart2.Init.Mode = UART_MODE_RX;
 	huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
 	huart2.Init.OverSampling = UART_OVERSAMPLING_16;
 	HAL_UART_Init(&huart2);
   
 	//__HAL_UART_ENABLE_IT(&huart2, UART_IT_TC);
 	__HAL_UART_ENABLE_IT(&huart2, UART_IT_RXNE);
-	//__HAL_UART_CLEAR_OREFLAG(&huart2);
 	BSP_LED_Init(LED2); 
-	HAL_NVIC_EnableIRQ(USART2_IRQn );
-	HAL_NVIC_SetPriority(USART2_IRQn , 0, 0);
+	HAL_NVIC_EnableIRQ(USART1_IRQn );
+	HAL_NVIC_SetPriority(USART1_IRQn , 0, 0);
 	
 	
 	
@@ -199,16 +199,9 @@ int main(void)
 	{
 		printf("Receive successful");
 	}
-	//while(1)
-	//{
-//		if( HAL_UART_Transmit(&huart2, bufftx, 10, 100) != HAL_OK)
-//		{
-//			printf("NOT OK!");
-//			HAL_Delay(500);
-//		}
  		PRINTF("h");
 		//HAL_Delay(500);
-	//}
+		BSP_LED_Toggle(LED2);
 	
 #if NEW_SERVICES
   /* Configure LED2 */
@@ -355,13 +348,14 @@ int main(void)
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-		BSP_LED_Toggle(LED2);
 		if (huart==&huart2) {
 			 // do something with rx_data
-
+			//BSP_LED_Toggle(LED2);
+			//HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_0);
+			//BSP_LED_Toggle(LED2);
 			
 				
-			 //HAL_UART_Receive_IT(&huart2, (uint8_t *)RxBuffer, 1);   // trigger the next read
+			 HAL_UART_Receive_IT(&huart2, (uint8_t *)RxBuffer, 1);   // trigger the next read
 			//UpdateRxBuffer
 		}
 

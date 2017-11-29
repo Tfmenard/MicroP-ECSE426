@@ -82,9 +82,11 @@ void TIM2_IRQHandler(void)
 	HAL_TIM_IRQHandler(&htim2);
 }
 
+//Will
 void USART2_IRQHandler(void)
 {
 	HAL_UART_IRQHandler(&huart2);	
 }
+//Will
 /* USER CODE END 1 */
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
