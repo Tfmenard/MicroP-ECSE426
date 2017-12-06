@@ -100,7 +100,7 @@ void MX_GPIO_Init(void)
 		GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
 		GPIO_InitStruct.Pull = GPIO_NOPULL;
 		GPIO_InitStruct.Speed = GPIO_SPEED_LOW;
-		GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
+		GPIO_InitStruct.Alternate = GPIO_AF7_USART1;
 		HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 		
 //		GPIO_InitStruct.Pin   = GPIO_PIN_5;

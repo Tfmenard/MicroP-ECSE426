@@ -50,6 +50,7 @@
 #include "gpio.h"
 #include <string.h>
 #include <stdio.h>
+#include "sensor_service.h"
 
 /** @addtogroup X-CUBE-BLE1_Applications
  *  @{
@@ -83,10 +84,11 @@ extern volatile uint8_t set_connectable;
 extern volatile int connected;
 extern AxesRaw_t axes_data;
 uint8_t bnrg_expansion_board = IDB04A1; /* at startup, suppose the X-NUCLEO-IDB04A1 is used */
+
+//UART Handle
 UART_HandleTypeDef huart2;
-uint8_t bufftx[10] = "Hello \n\r";
-#define RXBUFFERSIZE    1
-//uint8_t RxBuffer[RXBUFFERSIZE];
+
+//Data buffer received via UART
 uint8_t RxBuffer[RXBUFFERSIZE];
 /**
  * @}
@@ -97,6 +99,7 @@ uint8_t RxBuffer[RXBUFFERSIZE];
  */
 /* Private function prototypes -----------------------------------------------*/
 void User_Process(AxesRaw_t* p_axes);
+void Init_UART1(void);
 /**
  * @}
  */
@@ -149,8 +152,8 @@ void User_Process(AxesRaw_t* p_axes);
 //}
 int main(void)
 {
-  const char *name = "BlueNRG";
-  uint8_t SERVER_BDADDR[] = {0x12, 0x34, 0x00, 0xE1, 0x80, 0x03};
+  const char *name = "Celine";
+  uint8_t SERVER_BDADDR[] = {0x27, 0x34, 0x00, 0xE1, 0x80, 0x04}; //0x12, 0x03
   uint8_t bdaddr[BDADDR_SIZE];
   uint16_t service_handle, dev_name_char_handle, appearance_char_handle;
   
@@ -171,26 +174,11 @@ int main(void)
 	SystemClock_Config();
   HAL_Init();
 	MX_GPIO_Init();
-	//Init_UART();
-	huart2.Instance = USART1;
-	huart2.Init.BaudRate = 9600;
-	huart2.Init.WordLength = UART_WORDLENGTH_8B;
-	huart2.Init.StopBits = UART_STOPBITS_1;
-	huart2.Init.Parity = UART_PARITY_NONE;
-	huart2.Init.Mode = UART_MODE_RX;
-	huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-	huart2.Init.OverSampling = UART_OVERSAMPLING_16;
-	HAL_UART_Init(&huart2);
-  
-	//__HAL_UART_ENABLE_IT(&huart2, UART_IT_TC);
-	__HAL_UART_ENABLE_IT(&huart2, UART_IT_RXNE);
-	BSP_LED_Init(LED2); 
-	HAL_NVIC_EnableIRQ(USART1_IRQn );
-	HAL_NVIC_SetPriority(USART1_IRQn , 0, 0);
+	Init_UART1();
 	
 	
 	
-	
+  //Set up UART Receive Interrupt
 	if (HAL_UART_Receive_IT(&huart2, (uint8_t *)RxBuffer, RXBUFFERSIZE) != HAL_OK) 
 	{
         printf("Error setting Recevive UART Handler");
@@ -201,7 +189,7 @@ int main(void)
 	}
  		PRINTF("h");
 		//HAL_Delay(500);
-		BSP_LED_Toggle(LED2);
+		//BSP_LED_Toggle(LED2);
 	
 #if NEW_SERVICES
   /* Configure LED2 */
@@ -346,33 +334,37 @@ int main(void)
   }
 }
 
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-{
+{   
+  
 		if (huart==&huart2) {
-			 // do something with rx_data
-			//BSP_LED_Toggle(LED2);
-			//HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_0);
-			//BSP_LED_Toggle(LED2);
-			
-				
-			 HAL_UART_Receive_IT(&huart2, (uint8_t *)RxBuffer, 1);   // trigger the next read
-			//UpdateRxBuffer
+			BSP_LED_Off(LED2);
+      //Set up next receive interrupt
+			 HAL_UART_Receive_IT(&huart2, (uint8_t *)RxBuffer, RXBUFFERSIZE);
 		}
 
 }
 
-void Init_UART()
+void Init_UART1()
 {
 	
-	huart2.Instance = USART2;
-	huart2.Init.BaudRate = 115200;
+	huart2.Instance = USART1;
+  //TODO: Change BaudRate to 115200 and test, Change UART_IT_RXNE to UART_IT_TC and test,
+	huart2.Init.BaudRate = 9600;
 	huart2.Init.WordLength = UART_WORDLENGTH_8B;
 	huart2.Init.StopBits = UART_STOPBITS_1;
 	huart2.Init.Parity = UART_PARITY_NONE;
-	huart2.Init.Mode = UART_MODE_TX_RX;
+	huart2.Init.Mode = UART_MODE_RX;
 	huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
 	huart2.Init.OverSampling = UART_OVERSAMPLING_16;
 	HAL_UART_Init(&huart2);
+
+	__HAL_UART_ENABLE_IT(&huart2, UART_IT_RXNE);
+	BSP_LED_Init(LED2); 
+  BSP_LED_On(LED2);
+	HAL_NVIC_EnableIRQ(USART1_IRQn );
+	HAL_NVIC_SetPriority(USART1_IRQn , 0, 0);
 	
 }
 

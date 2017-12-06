@@ -166,7 +166,7 @@ void USART2_IRQHandler(void)
 	int pulse = 0;
 	while((pulse++)%10)
 	{
-		BSP_LED_Toggle(LED2);
+		//BSP_LED_Toggle(LED2);
 	}
 }
 

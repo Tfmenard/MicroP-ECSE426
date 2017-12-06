@@ -81,6 +81,9 @@
 #define IDB04A1 0
 #define IDB05A1 1
 
+//Size of buffer received via UART
+#define RXBUFFERSIZE    32512
+
 /**
  * @brief Instantiate two new services:
  *        1. Timer Service with two characteristics
