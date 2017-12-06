@@ -93,13 +93,27 @@ void MX_GPIO_Init(void)
 
 		/* Init GPIO pins */
 		__USART2_CLK_ENABLE();
+		__USART1_CLK_ENABLE();
 			
-		GPIO_InitStruct.Pin = GPIO_PIN_2 | GPIO_PIN_3;
+		//GPIO_InitStruct.Pin = GPIO_PIN_2 | GPIO_PIN_3;
+		GPIO_InitStruct.Pin = GPIO_PIN_10;
 		GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
 		GPIO_InitStruct.Pull = GPIO_NOPULL;
 		GPIO_InitStruct.Speed = GPIO_SPEED_LOW;
-		GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
+		GPIO_InitStruct.Alternate = GPIO_AF7_USART1;
 		HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+		
+//		GPIO_InitStruct.Pin   = GPIO_PIN_5;
+//    GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;    
+//    GPIO_InitStruct.Pull  = GPIO_PULLUP;
+//    GPIO_InitStruct.Speed = GPIO_SPEED_HIGH;  
+//    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);  
+		
+//		GPIO_InitStruct.Pin   = GPIO_PIN_0;
+//    GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;    
+//    GPIO_InitStruct.Pull  = GPIO_NOPULL;
+//    GPIO_InitStruct.Speed = GPIO_SPEED_HIGH;  
+//    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);  
 
 }
 

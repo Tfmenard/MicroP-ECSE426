@@ -57,6 +57,10 @@ volatile uint8_t set_connectable = 1;
 volatile uint16_t connection_handle = 0;
 volatile uint8_t notification_enabled = FALSE;
 volatile AxesRaw_t axes_data = {0, 0, 0};
+#define RXBUFFERSIZE    32512
+#define BLEBUFFER 255
+#define CHUNKSIZE 16
+extern uint8_t RxBuffer[RXBUFFERSIZE];
 uint16_t sampleServHandle, TXCharHandle, RXCharHandle;
 uint16_t accServHandle, freeFallCharHandle, accCharHandle;
 uint16_t envSensServHandle, tempCharHandle, pressCharHandle, humidityCharHandle;
@@ -295,8 +299,8 @@ tBleStatus Add_Environmental_Sensor_Service(void)
   /* Humidity Characteristic */
   if(1){   //FIXME
     COPY_HUMIDITY_CHAR_UUID(uuid);  
-    ret =  aci_gatt_add_char(envSensServHandle, UUID_TYPE_128, uuid, 2,
-                             CHAR_PROP_READ, ATTR_PERMISSION_NONE,
+    ret =  aci_gatt_add_char(envSensServHandle, UUID_TYPE_128, uuid, CHUNKSIZE,
+                             CHAR_PROP_NOTIFY|CHAR_PROP_READ, ATTR_PERMISSION_NONE,
                              GATT_NOTIFY_READ_REQ_AND_WAIT_FOR_APPL_RESP,
                              16, 0, &humidityCharHandle);
     if (ret != BLE_STATUS_SUCCESS) goto fail;
@@ -378,12 +382,37 @@ tBleStatus Press_Update(int32_t press)
  * @param  uint16_thumidity RH (Relative Humidity) in thenths of %
  * @retval tBleStatus      Status
  */
-tBleStatus Humidity_Update(uint16_t humidity)
+tBleStatus Humidity_Update(uint8_t data)
 {  
-  tBleStatus ret;
-  
+  tBleStatus ret;   
+  //uint8_t buff[RXBUFFER];
+	
+	uint8_t rxval = RxBuffer[0];
+	uint16_t rx = RxBuffer[0] + 650;
+    
+  uint16_t data16 = data;
   ret = aci_gatt_update_char_value(envSensServHandle, humidityCharHandle, 0, 2,
-                                   (uint8_t*)&humidity);
+                                   (uint8_t*)&data16);
+  
+  if (ret != BLE_STATUS_SUCCESS){
+    PRINTF("Error while updating TEMP characteristic.\n") ;
+    return BLE_STATUS_ERROR ;
+  }
+  return BLE_STATUS_SUCCESS;
+  
+}
+
+tBleStatus Humidity_Update_TOM(uint8_t *bleBuffer)
+{  
+  tBleStatus ret;   
+  //uint8_t buff[RXBUFFER];
+	
+	uint8_t rxval = RxBuffer[0];
+	uint16_t rx = RxBuffer[0] + 650;
+  
+  
+  ret = aci_gatt_update_char_value(envSensServHandle, humidityCharHandle, 0, CHUNKSIZE,
+                                   bleBuffer);
   
   if (ret != BLE_STATUS_SUCCESS){
     PRINTF("Error while updating TEMP characteristic.\n") ;
@@ -417,7 +446,7 @@ void setConnectable(void)
 {  
   tBleStatus ret;
   
-  const char local_name[] = {AD_TYPE_COMPLETE_LOCAL_NAME,'B','l','u','e','N','R','G'};
+  const char local_name[] = {AD_TYPE_COMPLETE_LOCAL_NAME,'C','e','l','i','n','e'};
   
   /* disable scan response */
   hci_le_set_scan_resp_data(0,NULL);
@@ -462,6 +491,8 @@ void GAP_DisconnectionComplete_CB(void)
   notification_enabled = FALSE;
 }
 
+int sendBLECounter = 0;
+
 /**
  * @brief  Read request callback.
  * @param  uint16_t Handle of the attribute
@@ -469,31 +500,22 @@ void GAP_DisconnectionComplete_CB(void)
  */
 void Read_Request_CB(uint16_t handle)
 {  
-  if(handle == accCharHandle + 1){
-    Acc_Update((AxesRaw_t*)&axes_data);
-  }  
-  else if(handle == tempCharHandle + 1){
-    int16_t data;
-    data = 210 + ((uint64_t)rand()*15)/RAND_MAX; //sensor emulation        
-    Acc_Update((AxesRaw_t*)&axes_data); //FIXME: to overcome issue on Android App
-                                        // If the user button is not pressed within
-                                        // a short time after the connection,
-                                        // a pop-up reports a "No valid characteristics found" error.
-    Temp_Update(data);
-  }
-  else if(handle == pressCharHandle + 1){
-    int32_t data;
-    struct timer t;  
-    Timer_Set(&t, CLOCK_SECOND/10);
-    data = 100000 + ((uint64_t)rand()*1000)/RAND_MAX;
-    Press_Update(data);
-  }
-  else if(handle == humidityCharHandle + 1){
-    uint16_t data;
+  //Check if Read request is for audio data
+  if(handle == humidityCharHandle + 1){
+     //Create new buffer to be sent via BLE
+     uint8_t tom[CHUNKSIZE];
     
-    data = 450 + ((uint64_t)rand()*100)/RAND_MAX;
+    //Check if the whole audio data buffer has been
+     if(sendBLECounter <= RXBUFFERSIZE){
+      for(int i=sendBLECounter; i<CHUNKSIZE + sendBLECounter; i++){
+        tom[i-sendBLECounter] = RxBuffer[i];
+      }
+      sendBLECounter += CHUNKSIZE;
+			Humidity_Update_TOM(tom);
+     } else {
+      sendBLECounter = 0;
+     }
     
-    Humidity_Update(data);
   }  
   
   //EXIT:
@@ -770,7 +792,7 @@ void Attribute_Modified_CB(uint16_t handle, uint8_t data_length, uint8_t *att_da
 {
   /* If GATT client has modified 'LED button characteristic' value, toggle LED2 */
   if(handle == ledButtonCharHandle + 1){      
-      BSP_LED_Toggle(LED2);
+      //BSP_LED_Toggle(LED2);
   }
 }
 #endif /* NEW_SERVICES */
